@@ -1,0 +1,14 @@
+version: "2"
+
+profiles:
+  {{ item.name }}:
+    inherit: default
+    use:
+      - name: repo-creds
+        REPO: {{ item.repository }}
+    backup:
+      source: {{ item.path }}
+      schedule: "{{ item.schedule }}"
+{% if item.tags %}
+      tag: {{ item.tags }}
+{% endif %}

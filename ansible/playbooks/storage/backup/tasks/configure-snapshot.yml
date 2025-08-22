@@ -1,0 +1,47 @@
+---
+- name: Configure snapper target - {{ target.name }}
+  become: true
+  block:
+    - name: Create snapper configuration for {{ target.name }}
+      ansible.builtin.command:
+        argv:
+          - snapper
+          - -c
+          - "{{ target.name }}"
+          - create-config
+          - --fstype=btrfs
+          - "{{ target.path }}"
+        creates: /etc/snapper/configs/{{ target.name }}
+
+    - name: Apply basic target configuration for {{ target.name }}
+      ansible.builtin.command:
+        argv:
+          - snapper
+          - -c
+          - "{{ target.name }}"
+          - set-config
+          - "{{ item }}"
+      changed_when: true
+      loop:
+        - ALLOW_USERS={{ restic_user }}
+        - BACKGROUND_COMPARISON=yes
+        - SYNC_ACL=yes
+
+    - name: Apply custom target configuration for {{ target.name }}
+      ansible.builtin.command:
+        argv:
+          - snapper
+          - -c
+          - "{{ target.name }}"
+          - set-config
+          - "{{ item.key }}={{ item.value }}"
+      changed_when: true
+      vars:
+        ignored_keys:
+          - SUBVOLUME
+          - FSTYPE
+          - ALLOW_USERS
+          - BACKGROUND_COMPARISON
+          - SYNC_ACL
+      loop: "{{ snapper_defaults | combine(target.vars | default({})) | dict2items }}"
+      when: item.key not in ignored_keys

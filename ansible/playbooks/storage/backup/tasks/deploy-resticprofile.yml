@@ -1,0 +1,84 @@
+---
+- name: Check resticprofile version
+  ansible.builtin.command:
+    cmd: "{{ resticprofile_bin }} version"
+  register: resticprofile_current_version
+  changed_when: false
+  failed_when: false
+  tags: upgrade
+
+- name: Deploy resticprofile
+  when: resticprofile_current_version.rc != 0 or resticprofile_version not in resticprofile_current_version.stdout
+  become: true
+  tags: upgrade
+  block:
+    - name: Download resticprofile installation script
+      ansible.builtin.get_url:
+        url: https://raw.githubusercontent.com/creativeprojects/resticprofile/master/install.sh
+        dest: /tmp/resticprofile-install.sh
+        mode: '0755'
+      register: resticprofile_download
+
+    - name: Install resticprofile
+      ansible.builtin.command:
+        argv:
+          - "{{ resticprofile_download.dest }}"
+          - -b
+          - "{{ resticprofile_bin | dirname }}"
+          - "{{ resticprofile_version }}"
+      register: resticprofile_install
+      changed_when: resticprofile_install.rc == 0
+      failed_when: resticprofile_install.rc != 0
+
+- name: Create configuration directory
+  ansible.builtin.file:
+    path: "{{ confdir }}"
+    state: directory
+    owner: "{{ restic_user }}"
+    group: "{{ restic_user }}"
+    mode: '0750'
+  become: true
+  tags: configure
+
+- name: Create resticprofile main configuration file
+  ansible.builtin.template:
+    src: configs/resticprofile.yaml.j2
+    dest: "{{ confdir }}/profiles.yaml"
+    mode: '0640'
+    owner: "{{ restic_user }}"
+    group: "{{ restic_user }}"
+  become: true
+  tags:
+    - configure
+    - profiles
+
+- name: Initialize resticprofile log files
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: touch
+    owner: "{{ restic_user }}"
+    group: "{{ restic_user }}"
+    mode: '0644'
+  become: true
+  loop:
+    - "{{ logfile }}"
+    - "{{ scheduledlogfile }}"
+  tags: configure
+
+- name: Configure log rotation for resticprofile logs
+  ansible.builtin.copy:
+    dest: /etc/logrotate.d/resticprofile
+    content: |
+      {{ item }} {
+        {% for option in logrotate %}
+        {{ option }}
+        {% endfor %}
+      }
+    owner: root
+    group: root
+    mode: '0644'
+  become: true
+  loop:
+    - "{{ logfile }}"
+    - "{{ scheduledlogfile }}"
+  tags: configure

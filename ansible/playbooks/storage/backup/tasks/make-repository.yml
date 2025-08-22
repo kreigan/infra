@@ -1,0 +1,57 @@
+---
+- name: Configure restic repository - {{ item.key }}
+  vars:
+    repo_name: "{{ item.key }}"
+    repo_path: "{{ item.value.path }}"
+    repo_password: "{{ item.value.password }}"
+    bucket: "{{ item.value.bucket }}"
+  block:
+    - name: Create repository directory
+      ansible.builtin.file:
+        path: "{{ repodir }}/{{ repo_name }}"
+        state: directory
+        mode: '0750'
+        owner: "{{ restic_user }}"
+        group: "{{ restic_user }}"
+      become: true
+      register: repo_dir
+
+    - name: Save repo path
+      ansible.builtin.set_fact:
+        repo_dir: "{{ repo_dir.path }}"
+
+    - name: Create repository credentials
+      ansible.builtin.include_tasks:
+        file: create-repository-secret.yml
+        apply:
+          tags:
+            - configure
+            - profiles
+      no_log: true
+      vars:
+        repo_secrets:
+          repository: "s3:https://{{ bucket.endpoint }}/{{ bucket.name }}/{{ repo_path }}"
+          password: "{{ repo_password }}"
+          aws-credentials: |-
+            [default]
+            aws_access_key_id = {{ bucket.credentials.key_id }}
+            aws_secret_access_key = {{ bucket.credentials.secret }}
+      loop: "{{ repo_secrets | dict2items }}"
+      loop_control:
+        label: "{{ item.key }}"
+        loop_var: secret
+
+    - name: Create systemd drop-in for repository
+      ansible.builtin.template:
+        src: systemd/restic-repo-systemd-dropin.j2
+        dest: "{{ repo_dir }}/99-systemd-creds.conf"
+        mode: '0750'
+        owner: "{{ restic_user }}"
+        group: "{{ restic_user }}"
+      become: true
+      vars:
+        aws_region: "{{ bucket.region }}"
+        secret_mapping:
+          - { name: repository, varname: RESTIC_REPOSITORY_FILE }
+          - { name: password, varname: RESTIC_PASSWORD_FILE }
+          - { name: aws-credentials, varname: AWS_SHARED_CREDENTIALS_FILE }

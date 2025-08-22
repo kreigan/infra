@@ -1,0 +1,152 @@
+---
+- name: Test resticprofile backup operation
+  hosts: storage
+
+  vars_files:
+    - backup/vars/main.yml
+
+  vars:
+    test_profile: "{{ profile | mandatory }}"
+
+  tasks:
+    - name: Run backup test with automatic rollback
+      block:
+        - name: Get current timestamp for scheduling
+          ansible.builtin.set_fact:
+            current_time: "{{ ansible_date_time.epoch | int }}"
+            future_time: "{{ (ansible_date_time.epoch | int) + 5 }}"
+
+        - name: Calculate schedule time (5 seconds from now)
+          ansible.builtin.set_fact:
+            schedule_time: "{{ '%H:%M:%S' | strftime(future_time | int) }}"
+
+        - name: Display test information
+          ansible.builtin.debug:
+            msg: |
+              Testing profile: {{ test_profile }}
+              Current time: {{ ansible_date_time.time }}
+              Scheduled time: {{ schedule_time }}
+
+        - name: Backup current profile configuration
+          ansible.builtin.copy:
+            src: "{{ profiledir }}/{{ test_profile }}.yaml"
+            dest: "{{ profiledir }}/{{ test_profile }}.yaml.backup"
+            remote_src: true
+            mode: '0640'
+            owner: "{{ restic_user }}"
+            group: "{{ restic_user }}"
+          become: true
+
+        - name: Read current profile configuration
+          ansible.builtin.slurp:
+            src: "{{ profiledir }}/{{ test_profile }}.yaml"
+          become: true
+          register: profile_content
+
+        - name: Modify schedule to run in 5 seconds
+          ansible.builtin.copy:
+            content: "{{ profile_content.content | b64decode | regex_replace('schedule: \".*\"', 'schedule: \"' + schedule_time + '\"') }}"
+            dest: "{{ profiledir }}/{{ test_profile }}.yaml"
+            mode: '0640'
+            owner: "{{ restic_user }}"
+            group: "{{ restic_user }}"
+          become: true
+
+        - name: Reload resticprofile schedule
+          ansible.builtin.command: "{{ resticprofile_bin }} --name {{ test_profile }} schedule --reload"
+          become: true
+          register: schedule_reload
+          changed_when: schedule_reload.rc == 0
+
+        - name: Display schedule reload output
+          ansible.builtin.debug:
+            var: schedule_reload.stdout_lines
+
+        - name: Get service unit name from resticprofile status
+          ansible.builtin.shell:
+            cmd: |
+              set -o pipefail
+              {{ resticprofile_bin }} \
+                --command-output console \
+                --name {{ test_profile }} status | awk '/ACTIVATES/ {getline; print $NF}'
+            executable: /usr/bin/bash
+          become: true
+          register: service_unit
+          changed_when: false
+
+        - name: Set service unit name
+          ansible.builtin.set_fact:
+            backup_service_unit: "{{ service_unit.stdout }}"
+
+        - name: Display detected service unit
+          ansible.builtin.debug:
+            var: backup_service_unit
+
+        - name: Wait for backup service to start
+          ansible.builtin.wait_for:
+            timeout: 10
+          delegate_to: localhost
+
+        - name: Monitor backup service status
+          ansible.builtin.shell:
+            cmd: |
+              set -o pipefail
+              for i in {1..12}; do
+                echo "=== Status check $i/12 ==="
+                systemctl status {{ backup_service_unit }} --no-pager || true
+                if systemctl is-active --quiet {{ backup_service_unit }}; then
+                  echo "Service is still running..."
+                  sleep 5
+                else
+                  echo "Service has completed."
+                  break
+                fi
+              done
+            executable: /usr/bin/bash
+          become: true
+          register: service_monitor
+          changed_when: false
+
+        - name: Display service monitoring output
+          ansible.builtin.debug:
+            var: service_monitor.stdout_lines
+
+        - name: Get final service status
+          ansible.builtin.command: systemctl status {{ backup_service_unit }} --no-pager
+          become: true
+          register: final_status
+          changed_when: false
+          failed_when: false
+
+        - name: Display final service status
+          ansible.builtin.debug:
+            var: final_status.stdout_lines
+
+        - name: Test completed
+          ansible.builtin.debug:
+            msg: "Backup test completed for profile '{{ test_profile }}'"
+
+      always:
+        - name: Restore original profile configuration
+          ansible.builtin.copy:
+            src: "{{ profiledir }}/{{ test_profile }}.yaml.backup"
+            dest: "{{ profiledir }}/{{ test_profile }}.yaml"
+            remote_src: true
+            mode: '0640'
+            owner: "{{ restic_user }}"
+            group: "{{ restic_user }}"
+          become: true
+          when: profile_content is defined
+
+        - name: Remove backup file
+          ansible.builtin.file:
+            path: "{{ profiledir }}/{{ test_profile }}.yaml.backup"
+            state: absent
+          become: true
+
+        - name: Reload resticprofile schedule with original configuration
+          ansible.builtin.command: "{{ resticprofile_bin }} --name {{ test_profile }} schedule --reload"
+          become: true
+          register: restore_reload
+          changed_when: restore_reload.rc == 0
+          when: profile_content is defined

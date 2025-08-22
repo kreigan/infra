@@ -1,0 +1,9 @@
+[Service]
+PrivateMounts=yes
+
+{% for secret in secret_mapping %}
+LoadCredentialEncrypted={{ repo_name }}-{{ secret.name }}:{{ repo_dir }}/{{ secret.name }}
+Environment={{ secret.varname }}="%d/{{ repo_name }}-{{ secret.name }}"
+
+{% endfor %}
+Environment=AWS_REGION={{ aws_region }}

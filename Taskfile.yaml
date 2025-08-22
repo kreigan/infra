@@ -1,0 +1,21 @@
+---
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+version: "3"
+
+set:
+  - pipefail
+shopt:
+  - globstar
+
+vars:
+  ANSIBLE_DIR: "{{ .ROOT_DIR }}/ansible"
+
+includes:
+  ansible:
+    taskfile: .taskfiles/ansible/Taskfile.yaml
+    dir: "{{ .ANSIBLE_DIR }}"
+
+tasks:
+  default:
+    silent: true
+    cmd: task --list

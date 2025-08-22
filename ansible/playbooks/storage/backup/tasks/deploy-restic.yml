@@ -1,0 +1,34 @@
+---
+- name: Check existing restic version
+  ansible.builtin.command:
+    cmd: "{{ restic_bin }} version"
+  register: restic_current_version
+  changed_when: false
+  failed_when: false
+  tags: upgrade
+
+- name: Deploy restic
+  when: restic_current_version.rc != 0 or restic_version not in restic_current_version.stdout
+  become: true
+  tags: upgrade
+  block:
+    - name: Download restic bin
+      ansible.builtin.get_url:
+        url: https://github.com/restic/restic/releases/download/v{{ restic_version }}/restic_{{ restic_version }}_linux_amd64.bz2
+        dest: /tmp/restic_{{ restic_version }}.bz2
+        mode: '0644'
+      register: restic_download
+
+    - name: Extract restic binary from bz2
+      ansible.builtin.shell:
+        cmd: bunzip2 --force -c {{ restic_download.dest }} > "{{ restic_bin }}"
+      register: restic_extract
+      changed_when: restic_extract.rc == 0
+      failed_when: restic_extract.rc != 0
+
+    - name: Set restic binary permissions
+      ansible.builtin.file:
+        path: "{{ restic_bin }}"
+        owner: root
+        group: root
+        mode: '0755'

@@ -1,41 +1,17 @@
-# Terraform
-*.tfstate
-*.tfstate.*
-*.tfvars
-.terraform/
-.terraform.lock.hcl
-terraform.tfplan
-terraform.tfplan.json
-
 # Ansible
-.lock
-*.retry
+.ansible/
 ansible.cfg
-inventory/host_vars/
-inventory/group_vars/secrets/
 
-# Environment files - NEVER commit sensitive data
+# Environment files
 .env
 *.env
 !.env.example
-ansible/1password.env
-
-# 1Password secrets - DO NOT COMMIT
-**/*secrets*
-**/*password*
-**/*credential*
 
 # IDE
 .vscode/
-.idea/
-
-# OS
-.DS_Store
-Thumbs.db
 
 # Logs
 *.log
-/var/log/btrfs-backup.log*
 
 # Testing artifacts
 .pytest_cache/
@@ -43,23 +19,8 @@ Thumbs.db
 htmlcov/
 .tox/
 .cache
-nosetests.xml
 coverage.xml
 *.cover
-.hypothesis/
-/tmp/restore-test-*
-
-# SSH keys and certificates - SECURITY CRITICAL
-*.pem
-*.key
-*.crt
-*.p12
-id_rsa*
-id_ed25519*
-
-# Local config
-config/local.yaml
-config/secrets.yaml
 
 # Python
 __pycache__/
@@ -68,3 +29,6 @@ __pycache__/
 # Virtual Environments
 .venv/
 .python-version
+
+# Task internal files
+.task/checksum/

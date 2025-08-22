@@ -1,0 +1,44 @@
+restic:
+  version: "0.18.0"
+  # user: restic
+  # bin: /usr/bin/restic
+
+resticprofile:
+  version: "0.31.0"
+  # bindir: /usr/bin
+  # confdir: /etc/resticprofile
+  # repodir: repositories
+  # profiledir: profile.d
+  # envdir: envs
+  # logfile: /var/log/resticprofile.log
+  # scheduledlogfile: /var/log/resticprofile-scheduled.log
+
+repositories:
+  photos:
+    password: op://automation/Restic/photos/password
+    path: op://automation/Restic/photos/path
+    bucket:
+      name: "op://services/Backblaze homeops-storage/bucket"
+      endpoint: "op://services/Backblaze homeops-storage/endpoint"
+      region: "op://services/Backblaze homeops-storage/region"
+      credentials:
+        key_id: "op://services/Backblaze homeops-storage/keyID"
+        secret: "op://services/Backblaze homeops-storage/applicationKey"
+
+targets:
+  photos:
+    snapshot:
+      path: /srv/dev-disk-by-uuid-bcb9f937-edbf-4092-95a6-84b31665f6f1/storage/media/Photos
+      # Uncomment to change vars or use defaults
+      # vars: {}
+    backup:
+      repository: photos
+      mount: /backup/photos
+      schedule: "00/2:05" # Every 2 hours at 5 minutes past the hour
+      # Uncomment to change default tags or use the target name
+      # tags: []
+
+log:
+  file: "/var/log/btrfs-backup.log"
+  # Uncomment to redefine log rotation options or use defaults
+  # rotate_options: []

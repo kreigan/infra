@@ -1,0 +1,41 @@
+restic_bin: "{{ restic.bin | default('/usr/bin/restic') }}"
+restic_user: "{{ restic.user | default('restic') }}"
+resticprofile_bin: "{{ resticprofile.bindir | default('/usr/bin') }}/resticprofile"
+
+confdir: "{{ resticprofile.confdir | default('/etc/resticprofile') }}"
+repodir: "{{ confdir }}/{{ resticprofile.repodir | default('repositories') }}"
+profiledir: "{{ confdir }}/{{ resticprofile.profiledir | default('profile.d') }}"
+
+envdir: "{{ confdir }}/{{ resticprofile.envdir | default('envs') }}"
+env_file_mount: "mount"
+env_file_snapshot: "snapshot"
+
+assist_script: "{{ confdir }}/backup-assist.sh"
+
+snapper_defaults:
+  SPACE_LIMIT: 0.5
+  FREE_LIMIT: 0.2
+  NUMBER_CLEANUP: "yes"
+  NUMBER_MIN_AGE: 1800
+  NUMBER_LIMIT: 50
+  NUMBER_LIMIT_IMPORTANT: 10
+  TIMELINE_CREATE: "yes"
+  TIMELINE_CLEANUP: "yes"
+  TIMELINE_MIN_AGE: 1800
+  TIMELINE_LIMIT_HOURLY: 10
+  TIMELINE_LIMIT_DAILY: 10
+  TIMELINE_LIMIT_WEEKLY: 0
+  TIMELINE_LIMIT_MONTHLY: 10
+  TIMELINE_LIMIT_QUARTERLY: 0
+  TIMELINE_LIMIT_YEARLY: 10
+  EMPTY_PRE_POST_CLEANUP: "yes"
+  EMPTY_PRE_POST_MIN_AGE: 1800
+
+logrotate_defaults:
+  - weekly
+  - rotate 4
+  - compress
+  - delaycompress
+  - missingok
+  - notifempty
+  - create 644 "{{ restic_user }}" "{{ restic_user }}"

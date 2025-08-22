@@ -1,0 +1,109 @@
+---
+- name: Validate repositories
+  ansible.builtin.assert:
+    that:
+      - item.value.password is defined and item.value.password | length > 0
+      - item.value.path is defined and item.value.path | length > 0
+      - item.value.bucket is defined
+      - item.value.bucket.name is defined and item.value.bucket.name | length > 0
+      - item.value.bucket.endpoint is defined and item.value.bucket.endpoint | length > 0
+      - item.value.bucket.region is defined and item.value.bucket.region | length > 0
+      - item.value.bucket.credentials is defined
+      - item.value.bucket.credentials.key_id is defined and item.value.bucket.credentials.key_id | length > 0
+      - item.value.bucket.credentials.secret is defined and item.value.bucket.credentials.secret | length > 0
+    fail_msg: "Repository {{ item.key }} configuration is missing or empty"
+    success_msg: "Repository {{ item.key }} configuration looks good"
+  loop: "{{ repositories | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+  no_log: true
+  failed_when: repositories is not defined or repositories | length == 0
+
+- name: Validate targets
+  ansible.builtin.assert:
+    that:
+      - item.value.snapshot is defined
+      - item.value.snapshot.path is defined and item.value.snapshot.path | length > 0
+      - item.value.backup is defined
+      - item.value.backup.repository is defined and item.value.backup.repository | length > 0
+      - item.value.backup.mount is defined and item.value.backup.mount | length > 0
+      - item.value.backup.schedule is defined and item.value.backup.schedule | length > 0
+    fail_msg: "Target {{ item.key }} configuration is missing or incomplete"
+    success_msg: "Target {{ item.key }} configuration looks good"
+  loop: "{{ targets | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+  failed_when: targets is not defined or targets | length == 0
+
+- name: Validate target to repository mappings
+  ansible.builtin.assert:
+    that:
+      - item.value.backup.repository is defined
+      - item.value.backup.repository in repositories
+    fail_msg: "Target {{ item.key }} references undefined repository {{ item.value.backup.repository }}"
+    success_msg: "Target {{ item.key }} references defined repository"
+  loop: "{{ targets | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+  no_log: true
+
+- name: Validate backup schedules
+  block:
+    - name: Check schedules using systemd
+      ansible.builtin.command:
+        cmd: "systemd-analyze calendar '{{ item.value.backup.schedule }}'"
+      register: schedule_check
+      changed_when: false
+      failed_when: false
+      ignore_errors: true
+      loop: "{{ targets | dict2items }}"
+      loop_control:
+        label: "{{ item.key }}"
+
+    - name: Assert valid schedules
+      ansible.builtin.assert:
+        that: schedule_check.results[index].rc == 0
+        fail_msg: "Target {{ item.key }} has invalid schedule '{{ item.value.backup.schedule }}'"
+        success_msg: "Target {{ item.key }} has valid schedule"
+        quiet: true
+      loop: "{{ targets | dict2items }}"
+      loop_control:
+        label: "{{ item.key }}"
+        index_var: index
+
+- name: Validate target mount points
+  block:
+    - name: Build mount point mapping
+      ansible.builtin.set_fact:
+        mount_point_map: >-
+          {{
+            mount_point_map | default({}) | combine({
+              item.mount: (mount_point_map | default({}))[item.mount] | default([]) + [{
+                'target': item.name,
+                'path': item.path
+              }]
+            })
+          }}
+      loop: "{{ targets | dict2items | json_query('[].{
+            name: key,
+            path: value.snapshot.path,
+            mount: value.backup.mount
+          }')
+        }}"
+      loop_control:
+        label: "{{ item.name }}"
+
+    - name: Check for conflicting mount points
+      ansible.builtin.assert:
+        that:
+          - mount_point_map[item.key] | map(attribute='path') | unique | list | length == 1
+        fail_msg: >-
+          Mount point '{{ item.key }}' is used by multiple targets with different paths:
+          {% for target in mount_point_map[item.key] %}
+          {{ target.target }} -> {{ target.path }}
+          {% endfor %}
+        success_msg: "Mount point '{{ item.key }}' has no conflicts"
+      loop: "{{ mount_point_map | dict2items }}"
+      loop_control:
+        label: "{{ item.key }}"
+      when: mount_point_map[item.key] | length > 1

@@ -1,0 +1,106 @@
+#!/bin/bash
+
+# Generate unique correlation ID for this execution
+CORRELATION_ID="$(date +%s)-$$-$RANDOM"
+
+function log() {
+    local level="$1"
+    shift
+    case "$level" in
+        debug|info|notice|warning|err|crit|alert|emerg) ;;
+        *) level="info" ;;
+    esac
+    echo "[$CORRELATION_ID] $*" | systemd-cat -t snapper-plugin -p "$level"
+}
+
+function log-debug() { log debug "$@"; }
+function log-info() { log info "$@"; }
+function log-notice() { log notice "$@"; }
+function log-warning() { log warning "$@"; }
+function log-err() { log err "$@"; }
+function log-crit() { log crit "$@"; }
+function log-alert() { log alert "$@"; }
+function log-emerg() { log emerg "$@"; }
+
+log-info "====================="
+log-info "snapper-plugin invoked: $*"
+
+command="$1"
+if [ "$command" != 'create-snapshot' ]; then
+    log-debug "Command '$command' is not handled by this plugin."
+    exit 0
+fi
+
+function getSubvolumeDevice() {
+    if [ "$1" == "/" ] || [ -z "$1" ]; then
+        log-debug "Reached root directory without finding btrfs subvolume device."
+        return
+    fi
+    
+    local device
+    device=$(findmnt --types btrfs -vno SOURCE "$1")
+    
+    if [ -n "$device" ]; then
+        echo "$device"
+    else
+        getSubvolumeDevice "$(dirname "$1")"
+    fi
+}
+
+function getCurrentSnapshotVolumeID() {
+    local snapshotFile="$1"
+    if [ ! -f "$snapshotFile" ]; then
+        return
+    fi
+    source "$snapshotFile"
+    echo "$SUBVOLID"
+}
+
+subvolume="$2"
+device=$(getSubvolumeDevice "$subvolume")
+if [ -z "$device" ]; then
+    log-warning "Could not find btrfs device for subvolume '$subvolume'."
+    exit 0
+fi
+log-debug "Found device '$device' for subvolume '$subvolume'."
+
+snapshotNumber="$4"
+snapshotPath="$subvolume/.snapshots/$snapshotNumber/snapshot"
+snapshotVolumeID=$(btrfs inspect-internal rootid "$snapshotPath")
+log-debug "Snapshot '$snapshotPath' has volume ID '$snapshotVolumeID'."
+
+snapperConfigDir="/etc/snapper/configs/"
+# Snapper target name == resticprofile profile name
+profiles=$(grep -sl "SUBVOLUME=\"$subvolume\"" "$snapperConfigDir"/* | xargs -n1 basename)
+
+log-debug "Found profiles for subvolume '$subvolume': [$profiles]"
+for profile in $profiles; do
+    stateDir="{{ envdir }}/$profile"
+    if [ ! -d "$stateDir" ]; then
+        log-err "State directory '$stateDir' does not exist."
+        continue
+    fi
+
+    snapshotFile="$stateDir/snapshot"
+    currentVolumeID=$(getCurrentSnapshotVolumeID "$snapshotFile")
+
+    if [ "$currentVolumeID" == "$snapshotVolumeID" ]; then
+        log-info "'$profile' already uses snapshot $snapshotVolumeID."
+        continue
+    elif [ -n "$currentVolumeID" ]; then
+        log-info "'$profile' uses snapshot $currentVolumeID, updating to $snapshotVolumeID."
+    else
+        log-info "'$profile' does not have a snapshot set, setting to $snapshotVolumeID."
+    fi
+
+    # Write snapshot state atomically
+    cat > "$snapshotFile.tmp" <<EOF
+DEVICE="$device"
+SUBVOLID=$snapshotVolumeID
+EOF
+    mv "$snapshotFile.tmp" "$snapshotFile"
+
+    log-info "Updated snapshot state for '$profile': device=$device, subvolid=$snapshotVolumeID"
+done
+
+log-info "snapper-plugin completed."

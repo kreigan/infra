@@ -1,0 +1,46 @@
+---
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+version: "3"
+
+vars:
+  INVENTORY_DIR: "inventory"
+  INVENTORY_FILE: "{{ .INVENTORY_DIR }}/hosts.yml"
+  HOSTCONFIG_DIR: "files/host_config"
+
+tasks:
+  generate-config:
+    desc: Generate configuration files
+    summary: |-
+      This task generates host variables by injecting 1Password secrets
+      into the configuration files. For a single host, pass HOSTNAME variable.
+    preconditions:
+      - which op
+      - op user get --me
+    vars:
+      CONFIG_FILES:
+        sh: ls {{ .HOSTCONFIG_DIR }}/{{ .HOSTNAME | default "*" }}.yml
+    cmds:
+      - for:
+          var: CONFIG_FILES
+        task: _generate_host_config
+        vars:
+          CONFIGFILE: "{{ .ITEM }}"
+          HOSTNAME: '{{ .ITEM | base | trimSuffix ".yml" }}'
+
+  _generate_host_config:
+    internal: true
+    desc: Generate configuration file for a single host
+    requires:
+      vars:
+        - CONFIGFILE
+        - HOSTNAME
+    vars:
+      OUTPUT_DIR: "{{ .INVENTORY_DIR }}/host_vars/{{ .HOSTNAME }}"
+    cmds:
+      - mkdir -p "{{ .OUTPUT_DIR }}"
+      - >
+        op inject
+        --in-file "{{ .CONFIGFILE }}"
+        --out-file "{{ .OUTPUT_DIR }}/99-config.secret.yml"
+        --force
+      - sed -i '/^\s*#/d' "{{ .OUTPUT_DIR }}/99-config.secret.yml"

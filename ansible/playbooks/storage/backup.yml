@@ -1,0 +1,82 @@
+---
+- name: Configure BTRFS Snapshot Backup to Backblaze B2
+  hosts: storage
+
+  vars_files:
+    - backup/vars/main.yml
+
+  tasks:
+    - name: Validate configuration
+      ansible.builtin.include_tasks:
+        file: backup/tasks/validate-configuration.yml
+        apply:
+          tags: validate
+      tags:
+        - always
+        - validate
+
+    - name: Deploy the required packages
+      ansible.builtin.include_tasks:
+        file: backup/tasks/deploy.yml
+        apply:
+          tags: deploy
+      tags:
+        - deploy
+        - upgrade
+        - configure
+        - profiles
+        - scripts
+
+    - name: Configure restic profiles
+      ansible.builtin.include_tasks:
+        file: backup/tasks/configure-profiles.yml
+        apply:
+          tags:
+            - configure
+            - profiles
+      vars:
+        profiles: >-
+          {{
+            targets | dict2items | json_query('[].{
+              name: key,
+              repository: value.backup.repository,
+              schedule: value.backup.schedule,
+              path: value.backup.mount,
+              tags: value.backup.tags
+            }')
+          }}
+      tags:
+        - configure
+        - profiles
+        - scripts
+
+    - name: Configure snapshots
+      ansible.builtin.include_tasks:
+        file: backup/tasks/configure-snapshot.yml
+        apply:
+          tags:
+            - configure
+            - snapshots
+      loop: >-
+        {{
+          targets | dict2items | json_query('[].{
+            name: key,
+            path: value.snapshot.path,
+            mount: value.backup.mount,
+            vars: value.snapshot.vars
+          }')
+        }}
+      loop_control:
+        loop_var: target
+      tags:
+        - configure
+        - snapshots
+
+  handlers:
+    - name: Schedule resticprofile
+      ansible.builtin.command: "{{ resticprofile_bin }} schedule --all"
+      become: true
+      register: schedule_result
+      changed_when: schedule_result.rc == 0 and schedule_result.stdout | length > 0
+      failed_when: schedule_result.rc != 0
+      tags: profiles

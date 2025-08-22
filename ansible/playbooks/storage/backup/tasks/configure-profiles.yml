@@ -1,0 +1,75 @@
+---
+- name: Ensure the required directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0750'
+    owner: "{{ restic_user }}"
+    group: "{{ restic_user }}"
+  become: true
+  loop:
+    - "{{ profiledir }}"
+    - "{{ repodir }}"
+    - "{{ envdir }}"
+
+- name: Configure repositories
+  ansible.builtin.include_tasks:
+    file: make-repository.yml
+  loop: "{{ repositories | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+
+- name: Create profile files
+  ansible.builtin.template:
+    src: configs/resticprofile-profile.yaml.j2
+    dest: "{{ profiledir }}/{{ item.name }}.yaml"
+    mode: '0640'
+    owner: "{{ restic_user }}"
+    group: "{{ restic_user }}"
+  become: true
+  loop: "{{ profiles }}"
+  notify: Schedule resticprofile
+
+- name: Deploy backup assistant script
+  ansible.builtin.copy:
+    src: backup-assist.sh
+    dest: "{{ assist_script }}"
+    mode: '0750'
+    owner: "{{ restic_user }}"
+    group: "{{ restic_user }}"
+  become: true
+  tags: scripts
+
+- name: Create env directories for each profile
+  ansible.builtin.file:
+    path: "{{ envdir }}/{{ item.name }}"
+    state: directory
+    mode: '0750'
+    owner: "{{ restic_user }}"
+    group: "{{ restic_user }}"
+  become: true
+  loop: "{{ profiles }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Create mount env files for each profile
+  ansible.builtin.copy:
+    content: "MOUNT_POINT='{{ item.path }}'\n"
+    dest: "{{ envdir }}/{{ item.name }}/{{ env_file_mount }}"
+    mode: '0644'
+    owner: "{{ restic_user }}"
+    group: "{{ restic_user }}"
+  become: true
+  loop: "{{ profiles }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Create mount points for backup targets
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0750'
+    owner: "{{ restic_user }}"
+    group: "{{ restic_user }}"
+  become: true
+  loop: "{{ profiles | map(attribute='path') | list | unique }}"

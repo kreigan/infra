@@ -1,0 +1,54 @@
+---
+- name: Install required packages
+  ansible.builtin.apt:
+    name:
+      - btrfs-progs
+      - wget
+      - acl
+      - yq
+    state: present
+    update_cache: true
+  become: true
+  tags: upgrade
+
+- name: Create restic user
+  ansible.builtin.user:
+    name: "{{ restic_user }}"
+    system: true
+    shell: /sbin/nologin
+    comment: "Restic backup user - no login"
+  become: true
+
+- name: Deploy restic
+  ansible.builtin.include_tasks:
+    file: backup/tasks/deploy-restic.yml
+    apply:
+      tags: deploy
+  vars:
+    restic_version: "{{ restic.version }}"
+  tags: upgrade
+
+- name: Deploy resticprofile
+  ansible.builtin.include_tasks:
+    file: backup/tasks/deploy-resticprofile.yml
+    apply:
+      tags: deploy
+  vars:
+    resticprofile_version: "v{{ resticprofile.version }}"
+    logfile: "{{ resticprofile.logfile | default('/var/log/resticprofile.log') }}"
+    scheduledlogfile: "{{ resticprofile.scheduledlogfile | default('/var/log/resticprofile-scheduled.log') }}"
+    logrotate: "{{ log.rotate_options | default(logrotate_defaults) }}"
+  tags:
+    - upgrade
+    - configure
+    - profiles
+
+- name: Deploy snapper
+  ansible.builtin.include_tasks:
+    file: backup/tasks/deploy-snapper.yml
+    apply:
+      tags: deploy
+  tags:
+    - upgrade
+    - configure
+    - scripts

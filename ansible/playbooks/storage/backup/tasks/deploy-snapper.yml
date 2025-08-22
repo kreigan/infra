@@ -1,0 +1,28 @@
+---
+- name: Install snapper package
+  ansible.builtin.package:
+    name: snapper
+    state: present
+  tags: upgrade
+
+- name: Create snapper plugin directory
+  ansible.builtin.file:
+    path: /usr/lib/snapper/plugins
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+  become: true
+  tags: configure
+
+- name: Deploy snapper restic plugin
+  ansible.builtin.template:
+    src: scripts/snapper-plugin.sh.j2
+    dest: /usr/lib/snapper/plugins/00-plugin.sh
+    mode: '0750'
+    owner: root
+    group: root
+  become: true
+  tags:
+    - configure
+    - scripts

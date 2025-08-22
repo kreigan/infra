@@ -1,0 +1,43 @@
+# yaml-language-server: $schema=https://creativeprojects.github.io/resticprofile/jsonschema/config.json
+
+version: "2"
+
+mixins:
+  repo-creds:
+    systemd-drop-in-files...:
+      - "{{ repodir | basename }}/$REPO/99-systemd-creds.conf"
+  default-tag:
+    tag: "{% raw %}{{ .Profile.Name }}{% endraw %}"
+
+global:
+  initialize: true
+  min-memory: 100
+  restic-binary: "{{ restic_bin }}"
+  log: "{{ logfile }}"
+
+  scheduler: systemd
+  schedule-defaults:
+    after-network-online: true
+    permission: system
+    priority: background
+  shell: bash
+
+includes:
+  - "{{ profiledir }}/*.yaml"
+
+profiles:
+  default:
+    env-file:
+      - "{{ envdir | basename }}/{% raw %}{{ .Profile.Name }}{% endraw %}/mount"
+      - "{{ envdir | basename }}/{% raw %}{{ .Profile.Name }}{% endraw %}/snapshot"
+
+    backup:
+      one-file-system: true
+      group-by: tags
+      verbose: true
+
+      use:
+        - default-tag
+
+      run-before: "{{ assist_script }} mount"
+      run-finally: "{{ assist_script }} unmount"
