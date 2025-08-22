@@ -1,0 +1,49 @@
+name: Ansible Lint
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'ansible/**'
+      - '.github/workflows/ansible-lint.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'ansible/**'
+      - '.github/workflows/ansible-lint.yml'
+
+jobs:
+  ansible-lint:
+    runs-on: ubuntu-latest
+    name: Ansible Lint
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install ansible ansible-lint
+
+      - name: Run ansible-lint on playbooks
+        run: |
+          cd ansible
+          ansible-lint playbooks/ || exit 1
+
+      - name: Run ansible-lint on roles
+        run: |
+          cd ansible
+          ansible-lint roles/ || exit 1
+
+      - name: Syntax check playbooks
+        run: |
+          cd ansible
+          for playbook in playbooks/*.yml; do
+            echo "Checking syntax: $playbook"
+            ansible-playbook --syntax-check "$playbook" -i inventory/hosts.yml || exit 1
+          done
