@@ -14,6 +14,8 @@ includes:
   ansible:
     taskfile: .taskfiles/ansible/Taskfile.yaml
     dir: "{{ .ANSIBLE_DIR }}"
+  restic:
+    taskfile: .taskfiles/restic/Taskfile.yaml
 
 tasks:
   default:

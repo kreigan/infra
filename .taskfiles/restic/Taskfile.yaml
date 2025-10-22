@@ -1,0 +1,89 @@
+---
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+
+version: "3"
+
+vars:
+  HOSTNAME: '{{ .HOSTNAME | default "storage" }}'
+  OUTPUT_DIR: '{{ .OUTPUT_DIR | default "$HOME/.config/restic/profiles" }}'
+  CONFIG_FILE: "{{ .ANSIBLE_DIR }}/{{ .INVENTORY_DIR }}/host_vars/{{ .HOSTNAME }}/99-config.secret.yml"
+
+tasks:
+  generate-env:*:
+    desc: Setup restic environment variables for local use
+    summary: |
+      Generate environment file for restic profile from Ansible config.
+      Usage: task restic:generate-env PROFILE=photos [HOSTNAME=storage] [OUTPUT_DIR=$HOME/.config/restic/profiles]
+    vars:
+      PROFILE: '{{ index .MATCH 0 }}'
+      ENV_FILE: "{{ .OUTPUT_DIR }}/.restic-env-{{ .PROFILE }}"
+    requires:
+      vars: [PROFILE]
+    preconditions:
+      - which yq
+      - sh: test -f "{{ .CONFIG_FILE }}"
+        msg: |
+          Config file not found: {{ .CONFIG_FILE }}
+          Run: task ansible:generate-config HOSTNAME={{ .HOSTNAME }}
+    cmds:
+      - cmd: |
+          if ! yq eval '.repositories | has("{{ .PROFILE }}")' "{{ .CONFIG_FILE }}" | grep -q true; then
+            echo "Error: Profile '{{ .PROFILE }}' not found in {{ .CONFIG_FILE }}"
+            echo ""
+            echo "Available profiles:"
+            yq eval '.repositories | keys | .[]' "{{ .CONFIG_FILE }}"
+            exit 1
+          fi
+        silent: true
+
+      - mkdir -p "{{ .OUTPUT_DIR }}"
+
+      - cmd: |
+          PASSWORD=$(yq eval '.repositories.{{ .PROFILE }}.password' "{{ .CONFIG_FILE }}")
+          PATH_SUFFIX=$(yq eval '.repositories.{{ .PROFILE }}.path' "{{ .CONFIG_FILE }}")
+          ENDPOINT=$(yq eval '.repositories.{{ .PROFILE }}.bucket.endpoint' "{{ .CONFIG_FILE }}")
+          BUCKET=$(yq eval '.repositories.{{ .PROFILE }}.bucket.name' "{{ .CONFIG_FILE }}")
+          REGION=$(yq eval '.repositories.{{ .PROFILE }}.bucket.region' "{{ .CONFIG_FILE }}")
+          KEY_ID=$(yq eval '.repositories.{{ .PROFILE }}.bucket.credentials.key_id' "{{ .CONFIG_FILE }}")
+          SECRET=$(yq eval '.repositories.{{ .PROFILE }}.bucket.credentials.secret' "{{ .CONFIG_FILE }}")
+
+          cat > "{{ .ENV_FILE }}" <<EOF
+          # Restic environment for profile: {{ .PROFILE }}
+          # Generated from: {{ .CONFIG_FILE }}
+          # Do not commit this file!
+
+          RESTIC_REPOSITORY="s3:https://${ENDPOINT}/${BUCKET}/${PATH_SUFFIX}"
+          RESTIC_PASSWORD="${PASSWORD}"
+          AWS_ACCESS_KEY_ID="${KEY_ID}"
+          AWS_SECRET_ACCESS_KEY="${SECRET}"
+          AWS_DEFAULT_REGION="${REGION}"
+          EOF
+        silent: true
+
+      - chmod 600 "{{ .ENV_FILE }}"
+      - cmd: 'echo "✓ Environment file created: {{ .ENV_FILE }}"'
+        silent: true
+
+  run-*:*:
+    desc: Load restic environment and run restic command
+    summary: |
+      Load restic environment for profile and run restic command.
+      Usage: task restic:run-snapshots:photos [-- additional args]
+    vars:
+      COMMAND: '{{ index .MATCH 0 }}'
+      PROFILE: '{{ index .MATCH 1 }}'
+      ENV_FILE: "{{ .OUTPUT_DIR }}/.restic-env-{{ .PROFILE }}"
+    requires:
+      vars: [COMMAND, PROFILE]
+    preconditions:
+      - sh: test -f "{{ .ENV_FILE }}"
+        msg: |
+          Environment file not found: {{ .ENV_FILE }}
+          Run: task restic:generate-env:{{ .PROFILE }}
+    cmds:
+      - cmd: |
+          set -a
+          source "{{ .ENV_FILE }}"
+          set +a
+          restic {{ .COMMAND }} {{ .CLI_ARGS }}
+        silent: true
