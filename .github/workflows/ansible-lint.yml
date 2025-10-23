@@ -38,7 +38,7 @@ jobs:
       - name: Syntax check playbooks
         run: |
           cd ansible
-          for playbook in playbooks/*.yml; do
+          find playbooks -maxdepth 2 -name "*.yml" -type f | while read playbook; do
             echo "Checking syntax: $playbook"
             ansible-playbook --syntax-check "$playbook" -i inventory/hosts.yml || exit 1
           done
