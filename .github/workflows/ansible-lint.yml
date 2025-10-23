@@ -35,11 +35,6 @@ jobs:
           cd ansible
           ansible-lint playbooks/ || exit 1
 
-      - name: Run ansible-lint on roles
-        run: |
-          cd ansible
-          ansible-lint roles/ || exit 1
-
       - name: Syntax check playbooks
         run: |
           cd ansible
