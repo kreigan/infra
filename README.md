@@ -18,7 +18,9 @@ This repository contains infrastructure automation tools and configurations for 
 
 ### Configuration
 
-1. Configure host-specific variables in `ansible/files/host_config/<hostname>.yml`
+1. Configure variables in:
+   - `ansible/files/host_config/<hostname>.yml` for host-specific variables
+   - `ansible/files/group_config/<groupname>.yml` for group variables
 2. Generate inventory variables: `task ansible:generate-config`
 3. Run playbooks as needed (see [ansible/README.md](ansible/README.md))
 

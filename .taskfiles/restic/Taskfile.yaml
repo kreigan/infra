@@ -4,16 +4,16 @@
 version: "3"
 
 vars:
-  HOSTNAME: '{{ .HOSTNAME | default "storage" }}'
+  STORAGEHOST: '{{ .STORAGEHOST | default "storage" }}'
   OUTPUT_DIR: '{{ .OUTPUT_DIR | default "$HOME/.config/restic/profiles" }}'
-  CONFIG_FILE: "{{ .ANSIBLE_DIR }}/{{ .INVENTORY_DIR }}/host_vars/{{ .HOSTNAME }}/99-config.secret.yml"
+  CONFIG_FILE: "{{ .ANSIBLE_DIR }}/{{ .INVENTORY_DIR }}/host_vars/{{ .STORAGEHOST }}/99-config.secret.yml"
 
 tasks:
   generate-env:*:
     desc: Setup restic environment variables for local use
     summary: |
       Generate environment file for restic profile from Ansible config.
-      Usage: task restic:generate-env PROFILE=photos [HOSTNAME=storage] [OUTPUT_DIR=$HOME/.config/restic/profiles]
+      Usage: task restic:generate-env PROFILE=photos [STORAGEHOST=storage] [OUTPUT_DIR=$HOME/.config/restic/profiles]
     vars:
       PROFILE: '{{ index .MATCH 0 }}'
       ENV_FILE: "{{ .OUTPUT_DIR }}/.restic-env-{{ .PROFILE }}"
@@ -24,7 +24,7 @@ tasks:
       - sh: test -f "{{ .CONFIG_FILE }}"
         msg: |
           Config file not found: {{ .CONFIG_FILE }}
-          Run: task ansible:generate-config HOSTNAME={{ .HOSTNAME }}
+          Run: task ansible:generate-config HOSTNAME={{ .STORAGEHOST }}
     cmds:
       - cmd: |
           if ! yq eval '.repositories | has("{{ .PROFILE }}")' "{{ .CONFIG_FILE }}" | grep -q true; then

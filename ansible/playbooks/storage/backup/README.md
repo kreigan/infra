@@ -47,7 +47,9 @@ For detailed architecture, see [docs/backup/design.md](../../../../docs/backup/d
 
 ### Configuration
 
-1. **Configure backup targets** in `ansible/files/host_config/<hostname>.yml`:
+1. **Configure backup targets**:
+
+For host-specific configuration in `ansible/files/host_config/<hostname>.yml`:
 
 ```yaml
 restic:
@@ -77,6 +79,8 @@ targets:
       mount: /backup/mydata
       schedule: "00/2:05"  # Every 2 hours at :05
 ```
+
+**Tip:** For shared repository settings across multiple hosts, you can define `repositories` in `ansible/files/group_config/<groupname>.yml` and only define `targets` in host-specific files.
 
 2. **Generate host variables** (if using 1Password secrets):
 

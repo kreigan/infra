@@ -7,9 +7,14 @@ This directory contains Ansible playbooks, inventory, and configuration files fo
 ```
 ansible/
 ├── files/
+│   ├── group_config/         # Group-specific configuration sources
+│   │   └── <groupname>.yml   # Configuration per group
 │   └── host_config/          # Host-specific configuration sources
 │       └── <hostname>.yml    # Configuration per host
 ├── inventory/
+│   ├── group_vars/           # Generated group variables
+│   │   └── <groupname>/
+│   │       └── 99-config.secret.yml  # Auto-generated from group_config
 │   └── host_vars/            # Generated host variables
 │       └── <hostname>/
 │           └── 99-config.secret.yml  # Auto-generated from host_config
@@ -19,24 +24,33 @@ ansible/
 
 ## Inventory Structure
 
-### Host Configuration Files
+### Configuration Files
 
-Each managed host has a configuration file in `files/host_config/<hostname>.yml`. These files:
-- Contain host-specific variables
+Configuration can be defined at two levels:
+
+**Group Configuration** (`files/group_config/<groupname>.yml`):
+- Contain group-wide variables
+- Applied to all hosts in the group
 - Can reference 1Password secrets using `op://` syntax
-- Are processed by the `task ansible:generate-config` command
+- Processed to `inventory/group_vars/<groupname>/99-config.secret.yml`
 
-### Generated Host Variables
+**Host Configuration** (`files/host_config/<hostname>.yml`):
+- Contain host-specific variables
+- Override group variables when defined
+- Can reference 1Password secrets using `op://` syntax
+- Processed to `inventory/host_vars/<hostname>/99-config.secret.yml`
+
+### Generated Variables
 
 The `task ansible:generate-config` command:
-1. Reads files from `files/host_config/*.yml`
+1. Reads files from `files/group_config/*.yml` and `files/host_config/*.yml`
 2. Resolves 1Password secret references using the `op` CLI
-3. Generates `inventory/host_vars/<hostname>/99-config.secret.yml`
+3. Generates `inventory/group_vars/<groupname>/99-config.secret.yml` or `inventory/host_vars/<hostname>/99-config.secret.yml`
 
 These generated files are:
 - Ignored by git (`.gitignore`)
 - Contain plaintext secrets (never commit!)
-- Should be regenerated whenever host_config files change
+- Should be regenerated whenever config files change
 
 ## Playbooks
 
@@ -52,9 +66,9 @@ See the [playbook README](playbooks/storage/backup/README.md) for detailed confi
 
 ### generate-config
 
-Generates host variable files from `host_config` sources with 1Password secret resolution.
+Generates group and host variable files from configuration sources with 1Password secret resolution.
 
-**Generate for all hosts:**
+**Generate for all groups and hosts:**
 ```bash
 task ansible:generate-config
 ```
@@ -64,9 +78,16 @@ task ansible:generate-config
 task ansible:generate-config HOSTNAME=storage
 ```
 
+**Generate for specific group:**
+```bash
+task ansible:generate-config GROUPNAME=webui
+```
+
+**Note:** Cannot specify both `HOSTNAME` and `GROUPNAME` at the same time.
+
 **How it works:**
-1. Finds `*.yml` files in `files/host_config/`
-2. For each file, creates `inventory/host_vars/<hostname>/`
+1. Finds `*.yml` files in `files/group_config/` and/or `files/host_config/`
+2. For each file, creates corresponding directory in `inventory/group_vars/` or `inventory/host_vars/`
 3. Runs `op inject` to resolve secret references
 4. Writes output to `99-config.secret.yml` omitting comment lines
 
@@ -79,7 +100,8 @@ ansible-galaxy install -r requirements.yaml
 
 ## Best Practices
 
-1. **Never commit secrets** - Use 1Password references in `host_config` files
-2. **Regenerate after changes** - Run `task ansible:generate-config` after modifying `host_config` files
-3. **Use tags** - Run specific parts of playbooks with `--tags`
-4. **Fail fast** - Include validation tasks in playbooks to catch misconfigurations early
+1. **Never commit secrets** - Use 1Password references in `group_config` and `host_config` files
+2. **Regenerate after changes** - Run `task ansible:generate-config` after modifying config files
+3. **Use groups wisely** - Define shared variables in `group_config`, host-specific in `host_config`
+4. **Use tags** - Run specific parts of playbooks with `--tags`
+5. **Fail fast** - Include validation tasks in playbooks to catch misconfigurations early
