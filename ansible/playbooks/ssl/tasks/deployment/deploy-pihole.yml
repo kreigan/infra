@@ -1,0 +1,18 @@
+---
+- name: Copy combined PEM certificate to destination
+  ansible.builtin.copy:
+    content: |
+      {{ lookup('file', cert_path) }}
+      {{ lookup('file', chain_path) }}
+      {{ lookup('file', key_path) }}
+    dest: "{{ tls_cert_path }}"
+    owner: pihole
+    group: pihole
+    mode: '0600'
+  become: true
+
+- name: Restart Pi-hole service to apply new SSL certificate
+  ansible.builtin.systemd:
+    name: pihole-FTL
+    state: restarted
+  become: true

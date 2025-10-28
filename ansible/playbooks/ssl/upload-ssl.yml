@@ -1,0 +1,108 @@
+---
+- name: Validate SSL certificate files
+  hosts: localhost
+  gather_facts: false
+  tags: always
+
+  vars: &vars
+    domain: "{{ internal_domain }}"
+    domain_path: "{{ letsencrypt_output_dir | mandatory }}/live/{{ domain }}"
+    cert_path: "{{ domain_path }}/cert.pem"
+    key_path: "{{ domain_path }}/privkey.pem"
+    chain_path: "{{ domain_path }}/chain.pem"
+    fullchain_path: "{{ domain_path }}/fullchain.pem"
+
+  tasks:
+    - name: Look for SSL certificate files
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      register: ssl_cert_files
+      loop:
+        - "{{ cert_path }}"
+        - "{{ key_path }}"
+        - "{{ chain_path }}"
+
+    - name: Fail if any file is missing
+      ansible.builtin.fail:
+        msg: "File {{ item.stat.path }} is missing."
+      when: not item.stat.exists
+      loop: "{{ ssl_cert_files.results }}"
+      loop_control:
+        label: "{{ item.stat.path }}"
+
+    - name: Validate the certificate is not expired
+      ansible.builtin.command: "openssl x509 -in {{ cert_path }} -noout -checkend 0"
+      changed_when: false
+      failed_when: cert_expiry.rc != 0
+      register: cert_expiry
+
+- name: Upload SSL Certificates
+  hosts: webui
+  vars: *vars
+  tasks:
+    - name: Determine if certificate deployment is needed
+      tags: prevalidate
+      block:
+        - name: Get local certificate fingerprint # noqa: run-once[task]
+          ansible.builtin.command: "openssl x509 -in {{ cert_path }} -noout -fingerprint -sha256"
+          delegate_to: localhost
+          run_once: true
+          register: local_cert_fingerprint
+          changed_when: false
+
+        - name: Show local certificate fingerprint # noqa: run-once[task]
+          ansible.builtin.debug:
+            msg: "Local certificate: {{ local_cert_fingerprint.stdout }}"
+          delegate_to: localhost
+          run_once: true
+
+        - name: Check if host already has the correct certificate
+          ansible.builtin.include_tasks:
+            file: tasks/fetch-remote-cert.yml
+            apply:
+              tags: prevalidate
+              delegate_to: localhost
+          vars:
+            output_var: remote_cert_fingerprint
+            fail_on_error: false
+
+        - name: Determine if deployment is needed
+          ansible.builtin.set_fact:
+            cert_deployment_needed: >-
+              {{ remote_cert_fingerprint.rc != 0 or
+                 remote_cert_fingerprint.stdout != local_cert_fingerprint.stdout }}
+
+        - name: Display certificate deployment status
+          ansible.builtin.debug:
+            msg: |-
+              Certificate deployment {% if not (cert_deployment_needed | bool) %}not {% endif %}
+              needed for {{ inventory_hostname }} ({{ ansible_host }})
+
+    - name: Deploy certificate and verify
+      tags: deploy
+      when: cert_deployment_needed | bool
+      block:
+        - name: Deploy SSL certificate
+          ansible.builtin.include_tasks: "tasks/deployment/deploy-{{ service_type }}.yml"
+
+        - name: Fetch certificate from HTTPS endpoint (post-deployment)
+          ansible.builtin.include_tasks: tasks/fetch-remote-cert.yml
+          vars:
+            output_var: remote_cert_fingerprint_final
+
+        - name: Verify deployed certificate matches local certificate
+          ansible.builtin.assert:
+            that:
+              - local_cert_fingerprint.stdout == remote_cert_fingerprint_final.stdout
+            fail_msg: |
+              Certificate mismatch for {{ inventory_hostname }} ({{ ansible_host }})!
+              Expected: {{ local_cert_fingerprint.stdout }}
+              Got: {{ remote_cert_fingerprint_final.stdout }}
+            success_msg: "✓ {{ inventory_hostname }} ({{ ansible_host }}) is serving the correct certificate"
+
+        - name: Display certificate validation status
+          ansible.builtin.debug:
+            msg:
+              - "Host: {{ inventory_hostname }} ({{ ansible_host }})"
+              - "Certificate fingerprint: {{ remote_cert_fingerprint_final.stdout }}"
+              - "Status: {{ '✓ Deployed and validated' if cert_deployment_needed else '✓ Already up-to-date' }}"

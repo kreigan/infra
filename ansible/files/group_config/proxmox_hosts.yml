@@ -1,0 +1,4 @@
+proxmox_api_host: op://automation/Proxmox API/api_host
+proxmox_api_user: op://automation/Proxmox API/username
+proxmox_api_token_id: op://automation/Proxmox API/token_id
+proxmox_api_token_secret: op://automation/Proxmox API/credential

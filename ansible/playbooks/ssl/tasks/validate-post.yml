@@ -1,0 +1,35 @@
+---
+- name: Get local certificate fingerprint
+  ansible.builtin.command: "openssl x509 -in {{ cert_path }} -noout -fingerprint -sha256"
+  delegate_to: localhost
+  run_once: true
+  register: local_cert_fingerprint
+  changed_when: false
+
+- name: Fetch certificate from HTTPS endpoint
+  ansible.builtin.command: >
+    openssl s_client -connect {{ ansible_host }}:443
+    -servername {{ ansible_host }}
+    -showcerts < /dev/null 2>/dev/null |
+    openssl x509 -noout -fingerprint -sha256
+  delegate_to: localhost
+  register: remote_cert_fingerprint
+  changed_when: false
+  failed_when: remote_cert_fingerprint.rc != 0
+
+- name: Verify deployed certificate matches local certificate
+  ansible.builtin.assert:
+    that:
+      - local_cert_fingerprint.stdout == remote_cert_fingerprint.stdout
+    fail_msg: |
+      Certificate mismatch for {{ inventory_hostname }} ({{ ansible_host }})!
+      Expected: {{ local_cert_fingerprint.stdout }}
+      Got: {{ remote_cert_fingerprint.stdout }}
+    success_msg: "✓ {{ inventory_hostname }} ({{ ansible_host }}) is serving the correct certificate"
+
+- name: Display certificate validation status
+  ansible.builtin.debug:
+    msg:
+      - "Host: {{ inventory_hostname }} ({{ ansible_host }})"
+      - "Certificate fingerprint: {{ remote_cert_fingerprint.stdout }}"
+      - "Status: ✓ Validated"

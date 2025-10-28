@@ -1,0 +1,47 @@
+---
+- name: Deploy Proxmox SSL Certificate
+  delegate_to: localhost
+  block:
+    - name: Make a temporary folder for certificates
+      ansible.builtin.tempfile:
+        state: directory
+        prefix: proxmox_certs_
+        suffix: _proxmox_combined.pem
+      register: temp_cert_dir
+
+    - name: Copy certificate and key into temporary folder
+      ansible.builtin.copy:
+        src: "{{ item.src }}"
+        dest: "{{ temp_cert_dir.path }}/{{ item.name }}"
+        mode: '0600'
+      loop:
+        - { src: "{{ fullchain_path }}", name: "cert.pem" }
+        - { src: "{{ key_path }}", name: "key.pem" }
+
+    - name: Install required Python packages
+      ansible.builtin.pip:
+        name:
+          - proxmoxer
+          - requests
+        state: present
+
+    - name: Install Proxmox SSL Certificates
+      community.proxmox.proxmox_node:
+        api_host: "{{ proxmox_api_host }}"
+        api_user: "{{ proxmox_api_user }}"
+        api_token_id: "{{ proxmox_api_token_id }}"
+        api_token_secret: "{{ proxmox_api_token_secret }}"
+        node_name: "{{ proxmox_node_name }}"
+        certificates:
+          cert: "{{ temp_cert_dir.path }}/cert.pem"
+          key: "{{ temp_cert_dir.path }}/key.pem"
+          state: present
+          force: true
+          restart: true
+        validate_certs: false
+
+  always:
+    - name: Remove temporary certificate directory
+      ansible.builtin.file:
+        path: "{{ temp_cert_dir.path }}"
+        state: absent

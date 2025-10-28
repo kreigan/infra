@@ -1,0 +1,43 @@
+---
+- name: Make a temporary directory for OpenMediaVault SSL files
+  ansible.builtin.tempfile:
+    state: directory
+    prefix: omv_ssl_
+  register: omv_ssl_tempdir
+
+- name: Deploy OpenMediaVault SSL Certificate
+  become: true
+  block:
+    - name: Copy SSL certificate files to OpenMediaVault
+      ansible.builtin.copy:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        owner: root
+        group: root
+        mode: '0600'
+      loop:
+        - src: "{{ cert_path }}"
+          dest: "{{ omv_ssl_tempdir.path }}/cert.pem"
+        - src: "{{ key_path }}"
+          dest: "{{ omv_ssl_tempdir.path }}/key.pem"
+
+    - name: Download the OMV renewal script
+      ansible.builtin.get_url:
+        url: "https://raw.githubusercontent.com/ryecoaaron/scripts/refs/heads/main/update_cert.sh"
+        dest: "{{ omv_ssl_tempdir.path }}/update_cert.sh"
+        mode: '0755'
+
+    - name: Execute the OMV SSL deployment script
+      ansible.builtin.command: >
+        bash {{ omv_ssl_tempdir.path }}/update_cert.sh ""
+        "{{ omv_ssl_tempdir.path }}/cert.pem"
+        "{{ omv_ssl_tempdir.path }}/key.pem"
+      register: omv_ssl_deploy
+      failed_when: omv_ssl_deploy.rc != 0
+      changed_when: omv_ssl_deploy.rc == 0
+
+  always:
+    - name: Remove temporary OpenMediaVault SSL directory
+      ansible.builtin.file:
+        path: "{{ omv_ssl_tempdir.path }}"
+        state: absent

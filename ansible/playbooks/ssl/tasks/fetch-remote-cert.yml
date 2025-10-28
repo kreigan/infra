@@ -1,0 +1,25 @@
+---
+- name: Fetch certificate from HTTPS endpoint
+  ansible.builtin.shell:
+    cmd: |-
+      set -o pipefail
+      openssl s_client -connect {{ ansible_host }}:443 \
+        -showcerts < /dev/null 2>/dev/null |
+      openssl x509 -noout -fingerprint -sha256
+    executable: /bin/bash
+  delegate_to: localhost
+  register: _remote_cert_result
+  changed_when: false
+  failed_when:
+    - _remote_cert_result.rc != 0
+    - fail_on_error | default(true) | bool
+
+- name: Show remote certificate fingerprint
+  delegate_to: localhost
+  ansible.builtin.debug:
+    msg: "Remote certificate: {{ _remote_cert_result.stdout }}"
+
+- name: Set output variable
+  delegate_to: localhost
+  ansible.builtin.set_fact:
+    "{{ output_var }}": "{{ _remote_cert_result }}"
