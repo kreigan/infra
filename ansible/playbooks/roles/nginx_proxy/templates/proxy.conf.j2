@@ -1,6 +1,7 @@
 {% set site = nginx_proxy_site_defaults | combine(item) %}
 {% set upstream_name = site.upstream_name | default(site.name) %}
-# {{ site.name }}: {{ site.server_name }}
+{% set server_name = site.server_name | regex_replace('^https?://', '') %}
+# {{ site.name }}: {{ server_name }}
 
 {# Resolve SSL certificate paths #}
 {% if site.ssl_enabled %}
@@ -28,7 +29,7 @@ upstream {{ upstream_name }} {
 server {
     listen 80;
     listen [::]:80;
-    server_name {{ site.server_name }};
+    server_name {{ server_name }};
 
 {% if site.ssl_enabled and ssl_cert_path | length > 0 %}
     # Redirect HTTP to HTTPS
@@ -38,7 +39,7 @@ server {
 server {
     listen 443 ssl http2;
     listen [::]:443 ssl http2;
-    server_name {{ site.server_name }};
+    server_name {{ server_name }};
 
     ssl_certificate {{ ssl_cert_path }};
     ssl_certificate_key {{ ssl_key_path }};

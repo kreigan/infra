@@ -1,0 +1,28 @@
+---
+nginx_proxy_ssl_certificates:
+  - internal
+  - public
+
+# Global overrides
+nginx_proxy_workers_processes: 2
+nginx_proxy_client_max_body_size: 50M
+
+nginx_proxy_sites:
+  - name: proxmox
+    server_name: "op://homeops/kminyehgkndktnxtmtyc4btrzm/website"
+    ssl_enabled: true
+    ssl_certificate: internal
+    backends:
+      - host: &proxmox proxmox.internal.kreigan.com
+        port: 8006
+    headers:
+      X-Frame-Options: SAMEORIGIN  # allow iframe embedding if needed
+    locations:
+      - path: /
+        proxy_host: *proxmox  # Pass backend hostname, not proxy hostname
+        websocket: true
+        config: |
+          proxy_buffering off;
+          proxy_http_version 1.1;
+          proxy_read_timeout 3600s;
+          proxy_send_timeout 3600s;
