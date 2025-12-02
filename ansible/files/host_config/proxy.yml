@@ -19,7 +19,8 @@ nginx_proxy_sites:
       X-Frame-Options: SAMEORIGIN  # allow iframe embedding if needed
     locations:
       - path: /
-        proxy_host: *proxmox  # Pass backend hostname, not proxy hostname
+        proxy:
+          host: *proxmox  # Pass backend hostname, not proxy hostname
         websocket: true
         config: |
           proxy_buffering off;
