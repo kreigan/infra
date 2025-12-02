@@ -1,0 +1,22 @@
+- name: Deploy TLS certificate
+  vars:
+    src_dir: "{{ nginx_proxy_ssl_src_dir }}/{{ item }}"
+    dest_dir: "{{ nginx_proxy_ssl_dest_dir }}/{{ item }}"
+  block:
+    - name: Create certificate folder
+      ansible.builtin.file:
+        path: "{{ dest_dir }}"
+        state: directory
+        owner: &nginx_user "{{ nginx_proxy_service_user }}"
+        group: *nginx_user
+        mode: "0750"
+
+    - name: Deploy certificate files
+      ansible.builtin.copy:
+        src: "{{ item }}"
+        dest: "{{ dest_dir }}/{{ item | basename }}"
+        owner: *nginx_user
+        group: *nginx_user
+        mode: "0644"
+      loop: "{{ query('fileglob', src_dir + '/cert.pem', src_dir + '/privkey.pem') }}"
+      notify: reload nginx

@@ -1,0 +1,54 @@
+user {{ nginx_proxy_service_user }};
+worker_processes {{ nginx_proxy_workers_processes }};
+error_log /var/log/nginx/error.log {{ nginx_proxy_error_log_level }};
+pid /run/nginx/nginx.pid;
+
+events {
+    worker_connections {{ nginx_proxy_workers_connections }};
+}
+
+http {
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
+
+    log_format main '$remote_addr - $remote_user [$time_local] "$request" '
+                    '$status $body_bytes_sent "$http_referer" '
+                    '"$http_user_agent" "$http_x_forwarded_for"';
+
+    access_log /var/log/nginx/access.log {{ nginx_proxy_access_log_format }};
+
+    sendfile on;
+    tcp_nopush on;
+    tcp_nodelay on;
+    keepalive_timeout 65;
+    types_hash_max_size 2048;
+    server_tokens off;
+
+    # SSL/TLS settings
+    ssl_protocols {{ nginx_proxy_ssl_protocols }};
+    ssl_ciphers {{ nginx_proxy_ssl_ciphers }};
+    ssl_prefer_server_ciphers {% if nginx_proxy_ssl_prefer_server_ciphers %}on{% else %}off{% endif %};
+    ssl_session_cache {{ nginx_proxy_ssl_session_cache }};
+    ssl_session_timeout {{ nginx_proxy_ssl_session_timeout }};
+
+    # Proxy settings
+    proxy_connect_timeout {{ nginx_proxy_proxy_connect_timeout }};
+    proxy_send_timeout {{ nginx_proxy_proxy_send_timeout }};
+    proxy_read_timeout {{ nginx_proxy_proxy_read_timeout }};
+    proxy_buffer_size {{ nginx_proxy_proxy_buffer_size }};
+    proxy_buffers {{ nginx_proxy_proxy_buffers_count }} {{ nginx_proxy_proxy_buffers_size }};
+    proxy_busy_buffers_size {{ nginx_proxy_proxy_busy_buffers_size }};
+
+    # Gzip
+    gzip on;
+    gzip_vary on;
+    gzip_proxied any;
+    gzip_comp_level 6;
+    gzip_types text/plain text/css text/xml text/javascript 
+               application/json application/javascript application/xml+rss 
+               application/rss+xml font/truetype font/opentype 
+               application/vnd.ms-fontobject image/svg+xml;
+
+    # Include virtual hosts
+    include /etc/nginx/http.d/*.conf;
+}
