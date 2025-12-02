@@ -1,32 +1,8 @@
 ---
-- name: Update apk cache
-  community.general.apk:
-    update_cache: true
-  tags: install
-
-- name: Install nginx
-  community.general.apk:
-    name: nginx
-    state: present
-  tags: install
-
-- name: Create nginx service user
-  ansible.builtin.user:
-    name: &nginx_user "{{ nginx_proxy_service_user }}"
-    shell: /sbin/nologin
-  tags: configure
-
-- name: Ensure nginx directories exist
-  ansible.builtin.file:
-    path: "{{ item }}"
-    state: directory
-    owner: *nginx_user
-    group: *nginx_user
-    mode: "0755"
-  loop:
-    - /etc/nginx/http.d
-    - /var/log/nginx
-  tags: configure
+- name: Include platform-specific deployment tasks
+  ansible.builtin.include_tasks:
+    file: "deploy/{{ ansible_os_family | lower }}.yml"
+  tags: always
 
 - name: Configure SSL
   when: nginx_proxy_ssl_certificates | length > 0
@@ -36,8 +12,8 @@
       ansible.builtin.file:
         path: "{{ nginx_proxy_ssl_dest_dir }}"
         state: directory
-        owner: *nginx_user
-        group: *nginx_user
+        owner: "{{ nginx_proxy_service_user }}"
+        group: "{{ nginx_proxy_service_user }}"
         mode: "0750"
 
     - name: Deploy TLS certificates
@@ -51,8 +27,8 @@
   ansible.builtin.template:
     src: nginx.conf.j2
     dest: /etc/nginx/nginx.conf
-    owner: *nginx_user
-    group: *nginx_user
+    owner: "{{ nginx_proxy_service_user }}"
+    group: "{{ nginx_proxy_service_user }}"
     mode: "0644"
     validate: "nginx -t -c %s"
   notify: reload nginx
@@ -61,9 +37,9 @@
 - name: Deploy reverse proxy configurations
   ansible.builtin.template:
     src: proxy.conf.j2
-    dest: "/etc/nginx/http.d/{{ item.name }}.conf"
-    owner: *nginx_user
-    group: *nginx_user
+    dest: "{{ nginx_config_dir }}/{{ item.name }}.conf"
+    owner: "{{ nginx_proxy_service_user }}"
+    group: "{{ nginx_proxy_service_user }}"
     mode: "0644"
     validate: "nginx -t -c %s"
   loop: "{{ nginx_proxy_sites }}"
@@ -72,9 +48,21 @@
   notify: reload nginx
   tags: configure
 
+- name: Enable sites (Debian)
+  ansible.builtin.file:
+    src: "{{ nginx_config_dir }}/{{ item.name }}.conf"
+    dest: "{{ nginx_sites_enabled_dir }}/{{ item.name }}.conf"
+    state: link
+  loop: "{{ nginx_proxy_sites }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: nginx_sites_enabled_dir is defined
+  notify: reload nginx
+  tags: configure
+
 - name: Remove default nginx site
   ansible.builtin.file:
-    path: /etc/nginx/http.d/default.conf
+    path: "{{ nginx_default_site }}"
     state: absent
   when: nginx_proxy_remove_default_site
   notify: reload nginx
