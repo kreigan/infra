@@ -1,4 +1,5 @@
 {% set site = nginx_proxy_site_defaults | combine(item) %}
+{% set upstream_name = site.upstream_name | default(site.name) %}
 # {{ site.name }}: {{ site.server_name }}
 
 {# Resolve SSL certificate paths #}
@@ -15,7 +16,7 @@
 {%   endif %}
 {% endif %}
 
-upstream {{ site.upstream_name | default(site.name) }} {
+upstream {{ upstream_name }} {
 {% for backend in site.backends %}
     server {{ backend.host }}:{{ backend.port }}{{ ' weight=' ~ backend.weight if backend.weight is defined else '' }}{{ ' max_fails=' ~ backend.max_fails if backend.max_fails is defined else '' }}{{ ' fail_timeout=' ~ backend.fail_timeout if backend.fail_timeout is defined else '' }};
 {% endfor %}
@@ -70,7 +71,7 @@ server {
 {% if location.proxy_pass is defined %}
         proxy_pass {{ location.proxy_pass }};
 {% else %}
-        proxy_pass http://{{ site.upstream_name | default(site.name) }};
+        proxy_pass http://{{ upstream_name }};
 {% endif %}
         
         proxy_set_header Host $host;
@@ -98,7 +99,7 @@ server {
 {% endfor %}
 {% else %}
     location / {
-        proxy_pass http://{{ site.upstream_name | default(site.name) }};
+        proxy_pass http://{{ upstream_name }};
         
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
