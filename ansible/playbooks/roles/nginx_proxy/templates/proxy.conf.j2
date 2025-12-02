@@ -1,6 +1,7 @@
 {% set site = nginx_proxy_site_defaults | combine(item) %}
 {% set upstream_name = site.upstream_name | default(site.name) %}
 {% set site_proxy = site.proxy | default({}) %}
+{% set proxy_protocol = site_proxy.protocol | default('http') %}
 {% set proxy_host_default = site_proxy.host | default('$host') %}
 {% set server_name = site.server_name | regex_replace('^https?://', '') %}
 # {{ site.name }}: {{ server_name }}
@@ -75,7 +76,7 @@ server {
 {% if loc_proxy.pass is defined %}
         proxy_pass {{ loc_proxy.pass }};
 {% else %}
-        proxy_pass http://{{ upstream_name }};
+        proxy_pass {{ loc_proxy.protocol | default(proxy_protocol) }}://{{ upstream_name }};
 {% endif %}
         
         proxy_set_header Host {{ loc_proxy.host | default(proxy_host_default) }};
@@ -103,7 +104,7 @@ server {
 {% endfor %}
 {% else %}
     location / {
-        proxy_pass http://{{ upstream_name }};
+        proxy_pass {{ proxy_protocol }}://{{ upstream_name }};
         
         proxy_set_header Host {{ proxy_host_default }};
         proxy_set_header X-Real-IP $remote_addr;

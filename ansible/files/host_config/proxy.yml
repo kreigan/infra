@@ -21,6 +21,7 @@ nginx_proxy_sites:
       - path: /
         proxy:
           host: *proxmox  # Pass backend hostname, not proxy hostname
+          protocol: https
         websocket: true
         config: |
           proxy_buffering off;
