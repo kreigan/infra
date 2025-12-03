@@ -1,0 +1,7 @@
+---
+# Cloudflared service configuration
+cloudflared_service_enabled: true
+cloudflared_service_state: started
+
+# Installation paths
+cloudflared_bin_dir: /usr/local/bin
