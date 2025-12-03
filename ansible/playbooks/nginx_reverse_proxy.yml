@@ -1,8 +1,10 @@
 ---
 - name: Configure nginx reverse proxy
-  hosts: proxy
+  hosts: proxies
   become: true
 
   roles:
+    - role: cloudflared
+      when: cloudflared
     - role: nginx_proxy
       when: nginx_proxy_sites | length > 0
