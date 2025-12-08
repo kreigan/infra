@@ -8,7 +8,18 @@
       ansible.builtin.assert:
         that:
           - ssl_dir is defined
+      tags:
+        - proxy
+        - sites
+        - ssl
+        - validate
+
     - name: Prepare SSL certificate files
+      tags:
+        - proxy
+        - sites
+        - ssl
+        - validate
       block:
         - name: Find certificate files
           ansible.builtin.find:
@@ -59,6 +70,8 @@
   roles:
     - role: cloudflared
       when: cloudflared
+      tags: cloudflared
     - role: nginx_proxy
       vars:
         nginx_proxy_cert_files: "{{ hostvars['localhost']['ssl_files'] }}"
+      tags: proxy

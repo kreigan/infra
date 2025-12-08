@@ -2,19 +2,16 @@
 - name: Update apk cache
   community.general.apk:
     update_cache: true
-  tags: install
 
 - name: Install nginx
   community.general.apk:
     name: nginx
     state: present
-  tags: install
 
 - name: Create nginx service user
   ansible.builtin.user:
     name: "{{ nginx_proxy_service_user }}"
     shell: /sbin/nologin
-  tags: configure
 
 - name: Ensure nginx directories exist
   ansible.builtin.file:
@@ -26,7 +23,6 @@
   loop:
     - /etc/nginx/http.d
     - /var/log/nginx
-  tags: configure
 
 - name: Set nginx config directory
   ansible.builtin.set_fact:

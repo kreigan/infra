@@ -3,20 +3,17 @@
   ansible.builtin.apt:
     update_cache: true
     cache_valid_time: 3600
-  tags: install
 
 - name: Install nginx
   ansible.builtin.apt:
     name: nginx
     state: present
-  tags: install
 
 - name: Create nginx service user
   ansible.builtin.user:
     name: "{{ nginx_proxy_service_user }}"
     shell: /usr/sbin/nologin
     system: true
-  tags: configure
 
 - name: Ensure nginx directories exist
   ansible.builtin.file:
@@ -29,7 +26,6 @@
     - /etc/nginx/sites-available
     - /etc/nginx/sites-enabled
     - /var/log/nginx
-  tags: configure
 
 - name: Set nginx config directory
   ansible.builtin.set_fact:

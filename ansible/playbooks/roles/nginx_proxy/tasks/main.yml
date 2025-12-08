@@ -6,7 +6,9 @@
 
 - name: Configure SSL
   when: nginx_proxy_cert_files | length > 0
-  tags: configure
+  tags:
+    - sites
+    - ssl
   block:
     - name: Ensure all requested certificates are provided
       ansible.builtin.assert:
@@ -31,7 +33,9 @@
       ansible.builtin.include_tasks:
         file: deploy_tls_certificate.yml
         apply:
-          tags: configure
+          tags:
+            - sites
+            - ssl
       loop: "{{ nginx_proxy_cert_files | dict2items }}"
       loop_control:
         loop_var: cert
@@ -47,16 +51,19 @@
     validate: "nginx -t -c %s"
   become: true
   notify: reload nginx
-  tags: configure
+  tags: sites
 
 - name: Deploy proxy configurations
   ansible.builtin.include_tasks:
     file: deploy_proxy_config.yml
+    apply:
+      tags:
+        - sites
   loop: "{{ nginx_proxy_sites }}"
   loop_control:
     label: "{{ item.name }}"
   when: nginx_proxy_sites | length > 0
-  tags: configure
+  tags: sites
 
 - name: Enable sites (if applicable)
   ansible.builtin.file:
@@ -71,7 +78,7 @@
     - nginx_sites_enabled_dir is defined
     - nginx_sites_enabled_dir != nginx_config_dir
   notify: reload nginx
-  tags: configure
+  tags: sites
 
 - name: Remove default nginx site
   ansible.builtin.file:
@@ -80,12 +87,10 @@
   become: true
   when: nginx_proxy_remove_default_site
   notify: reload nginx
-  tags: configure
 
 - name: Enable and start nginx service
   ansible.builtin.service:
     name: nginx
     enabled: "{{ nginx_proxy_service_enabled }}"
     state: "{{ nginx_proxy_service_state }}"
-  tags: service
   become: true

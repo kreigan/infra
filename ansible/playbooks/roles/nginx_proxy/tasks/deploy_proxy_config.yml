@@ -48,7 +48,7 @@
           - "Backup file: {{ nginx_proxy_conf_result.backup_file }}"
 
   always:
-    - name: Clean up backup file
+    - name: Clean up backup file  # noqa: no-handler
       ansible.builtin.file:
         path: "{{ nginx_proxy_conf_result.backup_file }}"
         state: absent
