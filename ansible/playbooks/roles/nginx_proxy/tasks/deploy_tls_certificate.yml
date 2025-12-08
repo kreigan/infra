@@ -1,7 +1,6 @@
 - name: Deploy TLS certificate
   vars:
-    src_dir: "{{ nginx_proxy_ssl_src_dir }}/{{ item }}"
-    dest_dir: "{{ nginx_proxy_ssl_dest_dir }}/{{ item }}"
+    dest_dir: "{{ nginx_proxy_ssl_dest_dir }}/{{ cert.key }}"
   block:
     - name: Create certificate folder
       ansible.builtin.file:
@@ -13,10 +12,13 @@
 
     - name: Deploy certificate files
       ansible.builtin.copy:
-        src: "{{ item }}"
-        dest: "{{ dest_dir }}/{{ item | basename }}"
+        src: "{{ cert_file }}"
+        dest: "{{ dest_dir }}"
         owner: *nginx_user
         group: *nginx_user
         mode: "0644"
-      loop: "{{ query('fileglob', src_dir + '/cert.pem', src_dir + '/privkey.pem') }}"
+      loop: "{{ cert.value }}"
+      loop_control:
+        loop_var: cert_file
+        label: "{{ cert_file }}"
       notify: reload nginx

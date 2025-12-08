@@ -4,7 +4,6 @@
 {% set proxy_protocol = site_proxy.protocol | default('http') %}
 {% set proxy_host_default = site_proxy.host | default('$host') %}
 {% set server_name = site.server_name | regex_replace('^https?://', '') %}
-# {{ site.name }}: {{ server_name }}
 
 {# Resolve SSL certificate paths #}
 {% if site.ssl_enabled %}
@@ -40,9 +39,11 @@ server {
 }
 
 server {
-    listen 443 ssl http2;
-    listen [::]:443 ssl http2;
+    listen 443 ssl;
+    listen [::]:443 ssl;
     server_name {{ server_name }};
+
+    http2 on;
 
     ssl_certificate {{ ssl_cert_path }};
     ssl_certificate_key {{ ssl_key_path }};
@@ -78,12 +79,10 @@ server {
 {% else %}
         proxy_pass {{ loc_proxy.protocol | default(proxy_protocol) }}://{{ upstream_name }};
 {% endif %}
-        
         proxy_set_header Host {{ loc_proxy.host | default(proxy_host_default) }};
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-        
 {% if location.websocket is defined and location.websocket %}
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;

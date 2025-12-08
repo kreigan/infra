@@ -30,6 +30,7 @@
 
 - name: Set nginx config directory
   ansible.builtin.set_fact:
-    nginx_config_dir: /etc/nginx/http.d
+    nginx_config_dir: &config_dir /etc/nginx/http.d
+    nginx_sites_enabled_dir: *config_dir
     nginx_default_site: /etc/nginx/http.d/default.conf
   tags: always

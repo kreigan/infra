@@ -11,7 +11,6 @@ nginx_proxy_workers_connections: 1024
 # Global SSL/TLS settings
 nginx_proxy_ssl_protocols: TLSv1.2 TLSv1.3
 nginx_proxy_ssl_ciphers: HIGH:!aNULL:!MD5
-nginx_proxy_ssl_prefer_server_ciphers: true
 nginx_proxy_ssl_session_cache: shared:SSL:10m
 nginx_proxy_ssl_session_timeout: 10m
 

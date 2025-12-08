@@ -5,9 +5,19 @@
   tags: always
 
 - name: Configure SSL
-  when: nginx_proxy_ssl_certificates | length > 0
+  when: nginx_proxy_cert_files | length > 0
   tags: configure
   block:
+    - name: Ensure all requested certificates are provided
+      ansible.builtin.assert:
+        that:
+          - item in nginx_proxy_cert_files
+        fail_msg: "No certificate files found for '{{ item }}'"
+        success_msg: "Certificate files found for '{{ item }}'"
+      loop: "{{ nginx_proxy_ssl_certificates | list }}"
+      loop_control:
+        label: "{{ item }}"
+
     - name: Create SSL certificates directory
       ansible.builtin.file:
         path: "{{ nginx_proxy_ssl_dest_dir }}"
@@ -15,13 +25,17 @@
         owner: "{{ nginx_proxy_service_user }}"
         group: "{{ nginx_proxy_service_user }}"
         mode: "0750"
+      become: true
 
     - name: Deploy TLS certificates
       ansible.builtin.include_tasks:
         file: deploy_tls_certificate.yml
         apply:
           tags: configure
-      loop: "{{ nginx_proxy_ssl_certificates }}"
+      loop: "{{ nginx_proxy_cert_files | dict2items }}"
+      loop_control:
+        loop_var: cert
+      when: nginx_proxy_cert_files | length > 0
 
 - name: Deploy nginx main configuration
   ansible.builtin.template:
@@ -31,32 +45,31 @@
     group: "{{ nginx_proxy_service_user }}"
     mode: "0644"
     validate: "nginx -t -c %s"
+  become: true
   notify: reload nginx
   tags: configure
 
-- name: Deploy reverse proxy configurations
-  ansible.builtin.template:
-    src: proxy.conf.j2
-    dest: "{{ nginx_config_dir }}/{{ item.name }}.conf"
-    owner: "{{ nginx_proxy_service_user }}"
-    group: "{{ nginx_proxy_service_user }}"
-    mode: "0644"
-    validate: "nginx -t -c %s"
+- name: Deploy proxy configurations
+  ansible.builtin.include_tasks:
+    file: deploy_proxy_config.yml
   loop: "{{ nginx_proxy_sites }}"
   loop_control:
     label: "{{ item.name }}"
-  notify: reload nginx
+  when: nginx_proxy_sites | length > 0
   tags: configure
 
-- name: Enable sites (Debian)
+- name: Enable sites (if applicable)
   ansible.builtin.file:
     src: "{{ nginx_config_dir }}/{{ item.name }}.conf"
     dest: "{{ nginx_sites_enabled_dir }}/{{ item.name }}.conf"
     state: link
+  become: true
   loop: "{{ nginx_proxy_sites }}"
   loop_control:
     label: "{{ item.name }}"
-  when: nginx_sites_enabled_dir is defined
+  when:
+    - nginx_sites_enabled_dir is defined
+    - nginx_sites_enabled_dir != nginx_config_dir
   notify: reload nginx
   tags: configure
 
@@ -64,6 +77,7 @@
   ansible.builtin.file:
     path: "{{ nginx_default_site }}"
     state: absent
+  become: true
   when: nginx_proxy_remove_default_site
   notify: reload nginx
   tags: configure
@@ -74,3 +88,4 @@
     enabled: "{{ nginx_proxy_service_enabled }}"
     state: "{{ nginx_proxy_service_state }}"
   tags: service
+  become: true
