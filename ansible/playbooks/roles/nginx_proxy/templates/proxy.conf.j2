@@ -3,7 +3,7 @@
 {% set site_proxy = site.proxy | default({}) %}
 {% set proxy_protocol = site_proxy.protocol | default('http') %}
 {% set proxy_host_default = site_proxy.host | default('$host') %}
-{% set server_name = site.server_name | regex_replace('^https?://', '') %}
+{% set server_name = site.server_name | regex_replace('^https?://', '') | regex_replace('/.*$', '') %}
 
 {# Resolve SSL certificate paths #}
 {% if site.ssl_enabled %}
