@@ -1,8 +1,8 @@
 ---
 - name: Reload nginx
-  ansible.builtin.service:
-    name: nginx
-    state: reloaded
+  ansible.builtin.command: nginx -s reload
+  become: true
+  changed_when: true
   listen: reload nginx
 
 - name: Restart nginx
