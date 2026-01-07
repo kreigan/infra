@@ -53,4 +53,6 @@
         path: "{{ nginx_proxy_conf_result.backup_file }}"
         state: absent
       become: true
-      when: nginx_proxy_conf_result.changed
+      when:
+        - nginx_proxy_conf_result.changed
+        - nginx_proxy_conf_result.backup_file is defined
