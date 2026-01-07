@@ -13,7 +13,7 @@ nginx_proxy_sites:
     ssl_enabled: true
     ssl_certificate: internal
     backends:
-      - host: &proxmox proxmox.internal.kreigan.com
+      - host: &proxmox crve01nd01.internal.kreigan.com
         port: 8006
     headers:
       X-Frame-Options: SAMEORIGIN  # allow iframe embedding if needed
