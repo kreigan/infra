@@ -8,6 +8,22 @@ nginx_proxy_workers_processes: 2
 nginx_proxy_client_max_body_size: 50M
 
 nginx_proxy_sites:
+  - name: router
+    server_name: "op://homeops/wimj34bds5ryx2sgzbhuiryu3u/website"
+    ssl_enabled: true
+    ssl_certificate: internal
+    backends:
+      - host: crnet01gh.internal.kreigan.com
+        port: 80
+
+  - name: adblocker
+    server_name: "op://homeops/pfr3zahxgtj6hmslbqa5lme5fq/website"
+    ssl_enabled: true
+    ssl_certificate: internal
+    backends:
+      - host: crnet01ph.internal.kreigan.com
+        port: 80
+
   - name: proxmox
     server_name: "op://homeops/kminyehgkndktnxtmtyc4btrzm/website"
     ssl_enabled: true
@@ -27,3 +43,64 @@ nginx_proxy_sites:
           proxy_buffering off;
           proxy_read_timeout 3600s;
           proxy_send_timeout 3600s;
+
+  - name: storage
+    server_name: "op://homeops/fy5i7qim5rc76mdog3yk2eovca/website"
+    ssl_enabled: true
+    ssl_certificate: internal
+    backends:
+      - host: &nas crst01nas01.internal.kreigan.com
+        port: 8000
+
+  - name: plex
+    server_name: plex.kreigan.com
+    ssl_enabled: true
+    ssl_certificate: public
+    backends:
+      - host: *nas
+        port: 32400
+    locations:
+      - path: /
+        websocket: true
+
+  - name: sonarr
+    server_name: "op://homeops/5j5od23fq3tvpfzz64wf5czdvm/website"
+    ssl_enabled: true
+    ssl_certificate: internal
+    backends:
+      - host: *nas
+        port: 18989
+
+  - name: radarr
+    server_name: "op://homeops/xy2pzhezyyr6rj6s6sgwxmzwfy/website"
+    ssl_enabled: true
+    ssl_certificate: internal
+    backends:
+      - host: *nas
+        port: 17878
+
+  - name: prowlarr
+    server_name: "op://homeops/wtjzhchuscuyxfkq7jwsykbgda/website"
+    ssl_enabled: true
+    ssl_certificate: internal
+    backends:
+      - host: *nas
+        port: 29696
+
+  - name: bazarr
+    server_name: "op://homeops/6g7gg57yvl3i4wyl55lsjmcs6i/website"
+    ssl_enabled: true
+    ssl_certificate: internal
+    backends:
+      - host: *nas
+        port: 16767
+
+  - name: home
+    server_name: internal.kreigan.com
+    ssl_enabled: true
+    ssl_certificate: internal
+    backends:
+      - host: *nas
+        port: 8066
+    locations:
+      - path: /downloads/
