@@ -1,0 +1,73 @@
+---
+- name: Bootstrap Linux host for Ansible management
+  hosts: crnet01ns01
+  gather_facts: true
+  become: true
+
+  vars:
+    bootstrap_user: ansible
+    bootstrap_user_uid: 1100
+    bootstrap_user_shell: /bin/sh
+    bootstrap_ssh_key_1password_ref: "op://homeops/i7vnp2wflh4taujqdytjfkhi3u/public key"
+    bootstrap_sudoers_file: "{{ bootstrap_user }}"
+
+  tasks:
+    - name: Validate required variables
+      ansible.builtin.assert:
+        that:
+          - bootstrap_user is defined
+          - bootstrap_ssh_key_1password_ref is defined
+        fail_msg: "bootstrap_user and bootstrap_ssh_key_1password_ref must be defined"
+      tags: always
+
+    - name: Read SSH public key from 1Password
+      ansible.builtin.command:
+        cmd: "op read '{{ bootstrap_ssh_key_1password_ref }}'"
+      register: bootstrap_ssh_key_result
+      changed_when: false
+      delegate_to: localhost
+      become: false
+
+    - name: Set SSH public key fact
+      ansible.builtin.set_fact:
+        bootstrap_ssh_public_key: "{{ bootstrap_ssh_key_result.stdout }}"
+
+    - name: Create management user
+      ansible.builtin.user:
+        name: "{{ bootstrap_user }}"
+        uid: "{{ bootstrap_user_uid | default(omit) }}"
+        shell: "{{ bootstrap_user_shell }}"
+        create_home: true
+        state: present
+
+    - name: Configure SSH authorized keys
+      ansible.posix.authorized_key:
+        user: "{{ bootstrap_user }}"
+        key: "{{ bootstrap_ssh_public_key }}"
+        state: present
+        exclusive: false
+        comment: "Internal Services — SSH EC Key (ansible)"
+
+    - name: Check if visudo is available
+      ansible.builtin.stat:
+        path: /usr/sbin/visudo
+      register: visudo_stat
+
+    - name: Create sudoers.d directory if it doesn't exist
+      ansible.builtin.file:
+        path: /etc/sudoers.d
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Configure passwordless sudo
+      ansible.builtin.copy:
+        content: |
+          # Ansible managed user - passwordless sudo
+          {{ bootstrap_user }} ALL=(ALL) NOPASSWD:ALL
+        dest: "/etc/sudoers.d/{{ bootstrap_sudoers_file }}"
+        owner: root
+        group: root
+        mode: "0440"
+        validate: "{{ '/usr/sbin/visudo -cf %s' if visudo_stat.stat.exists else omit }}"

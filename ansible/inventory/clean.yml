@@ -1,0 +1,57 @@
+---
+
+all:
+  vars:
+    ansible_user: ansible
+    ansible_python_interpreter: /usr/bin/python3
+
+# ON PREM
+
+onprem:
+  hosts:
+    crve01nd01:
+      ansible_host: crve01nd01.internal.kreigan.com
+    crnet01ns01:
+      ansible_host: crnet01ns01.internal.kreigan.com
+    crnet01ph:
+      ansible_host: crnet01ph.internal.kreigan.com
+    crnet01gw01:
+      ansible_host: crnet01gw01.internal.kreigan.com
+    crve01ctn01:
+      ansible_host: crve01ctn01.internal.kreigan.com
+  vars:
+    cloud: false
+
+proxmox_nodes:
+  hosts:
+    crve01nd01:
+      proxmox_node_name: proxmox
+  vars:
+    service_type: proxmox
+
+dns:
+  hosts:
+    crnet01ns01:
+
+gateways:
+  hosts:
+    crnet01gw01:
+
+docker_nodes:
+  hosts:
+    crve01ctn01:
+
+# CLOUD PROVIDERS
+
+oracle:
+  hosts:
+    ampere-vm:
+      ansible_host: ampere-vm-cloud-services.kreigan.com
+  vars:
+    cloud_provider: oracle
+
+cloud:
+  children:
+    oracle:
+  vars:
+    cloud: true

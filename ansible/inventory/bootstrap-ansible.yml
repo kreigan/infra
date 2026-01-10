@@ -1,0 +1,9 @@
+---
+
+onprem:
+  vars:
+    ansible_user: root
+
+oracle:
+  vars:
+    ansible_user: ubuntu
