@@ -23,6 +23,47 @@ onprem:
       pdnsdb_ip: *pdnsdb01
     pihole01:
       ansible_host: &pihole01 "10.1.21.5"
+      pihole_webpassword: "op://homeops/pfr3zahxgtj6hmslbqa5lme5fq/password"
+      pihole_dns_domain: "internal.kreigan.com"
+      dns_pdns_ips:
+        - *ns01
+        - *ns02
+      pihole_ftl_config:
+        dns:
+          upstreams:
+            - *resolver01
+          piholePTR: "HOSTNAME"
+          queryLogging: false
+          cache:
+            size: 2000
+          rateLimit:
+            interval: 5
+        dhcp:
+          active: false
+          start: "192.168.21.10"
+          end: "192.168.21.99"
+          router: "192.168.21.1"
+          netmask: "255.255.255.0"
+          leaseTime: "2d"
+          rapidCommit: true
+          multiDNS: true
+        ntp:
+          ipv4:
+            active: false
+          ipv6:
+            active: false
+          sync:
+            interval: 0
+        database:
+          maxDBdays: 30
+          network:
+            expire: 30
+        misc:
+          dnsmasq_lines:
+            - server=/kreigan.com/{{ dns_pdns_ips[0] }}
+            - server=/kreigan.com/{{ dns_pdns_ips[1] }}
+            - server=/internal.kreigan.com/{{ dns_pdns_ips[0] }}
+            - server=/internal.kreigan.com/{{ dns_pdns_ips[1] }}
     gateway01:
       ansible_host: &gateway01 "10.1.21.20"
     docker01:

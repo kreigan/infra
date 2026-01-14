@@ -1,0 +1,5 @@
+- name: Configure Pi-hole
+  hosts: pihole
+
+  roles:
+    - role: pihole
