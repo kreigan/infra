@@ -9,37 +9,54 @@ all:
 
 onprem:
   hosts:
-    crve01nd01:
-      ansible_host: crve01nd01.internal.kreigan.com
-    crnet01ns01:
-      ansible_host: crnet01ns01.internal.kreigan.com
-    crnet01ph:
-      ansible_host: crnet01ph.internal.kreigan.com
-    crnet01gw01:
-      ansible_host: crnet01gw01.internal.kreigan.com
-    crve01ctn01:
-      ansible_host: crve01ctn01.internal.kreigan.com
+    proxmox01:
+      ansible_host: &proxmox01 "10.1.21.1"
+    resolver01:
+      ansible_host: &resolver01 "10.1.21.2"
+    pdnsdb01:
+      ansible_host: &pdnsdb01 "10.1.21.6"
+    ns01:
+      ansible_host: &ns01 "10.1.21.3"
+      pdnsdb_ip: *pdnsdb01
+    ns02:
+      ansible_host: &ns02 "10.1.21.4"
+      pdnsdb_ip: *pdnsdb01
+    pihole01:
+      ansible_host: &pihole01 "10.1.21.5"
+    gateway01:
+      ansible_host: &gateway01 "10.1.21.20"
+    docker01:
+      ansible_host: &docker01 "10.1.21.30"
   vars:
     cloud: false
 
 proxmox_nodes:
   hosts:
-    crve01nd01:
+    proxmox01:
       proxmox_node_name: proxmox
-  vars:
-    service_type: proxmox
 
 dns:
+  children:
+    pihole:
+      hosts:
+        pihole01:
+    powerdns:
+      hosts:
+        ns01:
+        ns02:
+    resolvers:
+      hosts:
+        resolver01:
   hosts:
-    crnet01ns01:
+    pdnsdb01:
 
 gateways:
   hosts:
-    crnet01gw01:
+    gateway01:
 
 docker_nodes:
   hosts:
-    crve01ctn01:
+    docker01:
 
 # CLOUD PROVIDERS
 
