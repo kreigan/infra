@@ -1,0 +1,44 @@
+---
+- name: Check that resolve.conf points to Unbound
+  ansible.builtin.assert:
+    that:
+      - "'127.0.0.1' in ansible_facts['dns']['nameservers']"
+    fail_msg: "Host is not using 127.0.0.1 as DNS resolver"
+
+- name: Install Unbound
+  ansible.builtin.apt:
+    name: unbound
+    state: present
+    update_cache: true
+  become: true
+
+- name: Enable Unbound service
+  ansible.builtin.service:
+    name: unbound
+    enabled: true
+    state: started
+  become: true
+
+- name: Apply Unbound base configuration
+  ansible.builtin.copy:
+    content: "{{ unbound_base_config }}"
+    dest: /etc/unbound/unbound.conf.d/00-base.conf
+    owner: root
+    group: root
+    mode: '0644'
+    validate: unbound-checkconf %s
+  become: true
+  notify: Restart Unbound
+  tags: configure
+
+- name: Apply Unbound cache configuration
+  ansible.builtin.copy:
+    content: "{{ unbound_cache_config }}"
+    dest: /etc/unbound/unbound.conf.d/10-cache.conf
+    owner: root
+    group: root
+    mode: '0644'
+    validate: unbound-checkconf %s
+  become: true
+  notify: Restart Unbound
+  tags: configure

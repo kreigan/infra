@@ -1,4 +1,10 @@
 ---
+- name: Configure resolvers
+  hosts: resolvers
+  roles:
+    - unbound
+  tags: resolvers
+
 - name: Configure Pi-hole
   hosts: pihole
   roles:
