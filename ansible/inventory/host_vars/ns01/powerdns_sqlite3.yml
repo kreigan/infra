@@ -1,0 +1,40 @@
+allow_axfr_ips:
+  - 127.0.0.0/8
+  - 10.1.21.0/24
+
+allow_dnsupdate_ips:
+  - 192.168.21.140/32
+
+powerdns_web_address: "{{ ansible_facts['default_ipv4']['address'] }}"
+powerdns_web_port: 8081
+powerdns_api_base_url: "http://{{ powerdns_web_address }}:{{ powerdns_web_port }}/api/v1/servers/localhost"
+
+pdns_config:
+  local-address: "{{ ansible_facts['default_ipv4']['address'] }}"
+  local-port: 53
+
+  allow-axfr-ips: "{{ allow_axfr_ips | join(',') }}"
+
+  dnsupdate: true
+  allow-dnsupdate-from: "{{ allow_dnsupdate_ips | join(',') }}"
+
+  webserver: true
+  webserver-address: "{{ powerdns_web_address }}"
+  webserver-port: "{{ powerdns_web_port }}"
+  webserver-allow-from: "{{ ansible_facts['default_ipv4']['network'] }}/{{ ansible_facts['default_ipv4']['prefix'] }}"
+
+  api: true
+  api-key: "{{ powerdns_api_key | mandatory }}"
+
+  loglevel: 4
+  log-dns-queries: false
+
+database_name: '/var/lib/powerdns/db.sqlite'
+
+pdns_backends:
+  gsqlite3:
+    database: "{{ database_name }}"
+    dnssec: true
+
+pdns_sqlite_databases_locations:
+  - "{{ database_name }}"

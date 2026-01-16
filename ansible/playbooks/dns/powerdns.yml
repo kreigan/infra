@@ -1,0 +1,50 @@
+---
+- name: Install and configure PowerDNS
+  hosts: ns01
+  roles:
+    - role: PowerDNS.pdns
+      become: true
+
+  tasks:
+    - name: Install TSIG keys
+      tags: tsig
+      block:
+        - name: Try create TSIG key
+          ansible.builtin.uri:
+            url: "{{ powerdns_api_base_url }}/tsigkeys"
+            method: POST
+            headers:
+              X-API-Key: "{{ powerdns_api_key }}"
+            body_format: json
+            body:
+              name: "{{ item.name }}"
+              algorithm: "{{ item.algorithm }}"
+              secret: "{{ item.secret }}"
+            status_code: 201
+          loop: "{{ tsig_keys }}"
+          loop_control:
+            label: "{{ item.name }}"
+          no_log: true
+
+      rescue:
+        - name: TSIG key already exists, updating
+          ansible.builtin.uri:
+            url: "{{ powerdns_api_base_url }}/tsigkeys/{{ item.name }}"
+            method: PUT
+            headers:
+              X-API-Key: "{{ powerdns_api_key }}"
+            body_format: json
+            body:
+              algorithm: "{{ item.algorithm }}"
+              secret: "{{ item.secret }}"
+            status_code: 200
+          loop: >-
+            {{
+              ansible_failed_result.results
+              | selectattr('status', 'eq', 409)
+              | map(attribute='item')
+              | list
+            }}
+          loop_control:
+            label: "{{ item.name }}"
+          no_log: true
