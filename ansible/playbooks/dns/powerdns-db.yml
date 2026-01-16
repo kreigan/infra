@@ -1,0 +1,6 @@
+---
+- name: Setup PowerDNS database
+  hosts: pdnsdb01
+  roles:
+    - role: geerlingguy.postgresql
+      become: true
