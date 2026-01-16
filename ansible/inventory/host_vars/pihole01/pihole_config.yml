@@ -1,0 +1,44 @@
+pihole_webpassword: "op://homeops/pfr3zahxgtj6hmslbqa5lme5fq/password"
+pihole_dns_domain: "internal.kreigan.com"
+dns_pdns_ips:
+  - "{{ hostvars['ns01']['ansible_host'] }}"
+  - "{{ hostvars['ns02']['ansible_host'] }}"
+pihole_ftl_config:
+  dns:
+    upstreams:
+      - "{{ hostvars['resolver01']['ansible_host'] }}"
+    piholePTR: "HOSTNAME"
+    queryLogging: false
+    domain:
+      local: false
+    cache:
+      size: 2000
+      optimizer: 300  # 5 minutes
+    rateLimit:
+      interval: 5
+  dhcp:
+    active: false
+    start: "192.168.21.10"
+    end: "192.168.21.99"
+    router: "192.168.21.1"
+    netmask: "255.255.255.0"
+    leaseTime: "2d"
+    rapidCommit: true
+    multiDNS: true
+  ntp:
+    ipv4:
+      active: false
+    ipv6:
+      active: false
+    sync:
+      interval: 0
+  database:
+    maxDBdays: 20
+    network:
+      expire: 30
+  misc:
+    dnsmasq_lines:
+      - server=/kreigan.com/{{ dns_pdns_ips[0] }}
+      - server=/kreigan.com/{{ dns_pdns_ips[1] }}
+      - server=/internal.kreigan.com/{{ dns_pdns_ips[0] }}
+      - server=/internal.kreigan.com/{{ dns_pdns_ips[1] }}
