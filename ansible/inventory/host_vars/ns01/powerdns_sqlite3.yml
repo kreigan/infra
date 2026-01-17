@@ -1,3 +1,6 @@
+powerdns_version: "50"
+powerdns_repo_pub: FD380FBB
+
 allow_axfr_ips:
   - 127.0.0.0/8
   - 10.1.21.0/24
