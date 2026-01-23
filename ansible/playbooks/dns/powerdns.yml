@@ -33,7 +33,7 @@
             body:
               name: "{{ item.name }}"
               algorithm: "{{ item.algorithm }}"
-              secret: "{{ item.secret }}"
+              key: "{{ item.secret }}"
             status_code:
               - 201
               - 409
@@ -51,7 +51,7 @@
             body_format: json
             body:
               algorithm: "{{ item.algorithm }}"
-              secret: "{{ item.secret }}"
+              key: "{{ item.secret }}"
             status_code: 200
           loop: "{{ tsig_keys }}"
           when: tsig_create_result.results[index].status == 409
