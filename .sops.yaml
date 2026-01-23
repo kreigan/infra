@@ -1,0 +1,9 @@
+---
+keys:
+  - &user_kreigan age165j834wdl949ss7rqpxytcw4hcmp3k7kakrjs9gphch3q3ag4pdqmycj78
+
+creation_rules:
+  - path_regex: ansible/playbooks/dns/files/zones.yml$
+    encrypted_regex: "^(content)$"
+    age:
+      - *user_kreigan
