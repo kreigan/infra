@@ -2,7 +2,7 @@ pihole_webpassword: "op://homeops/pfr3zahxgtj6hmslbqa5lme5fq/password"
 
 pihole_dns_domain: "internal.kreigan.com"
 
-dns_pdns_ips:
+internal_dns_servers:
   - "{{ hostvars['ns01']['ansible_host'] }}"
 
 dns_internal_domains:
@@ -16,6 +16,7 @@ pihole_ftl_config:
     piholePTR: "HOSTNAME"
     queryLogging: false
     domain:
+      name: "{{ pihole_dns_domain }}"
       local: false
     cache:
       size: 2000
@@ -24,8 +25,8 @@ pihole_ftl_config:
       interval: 5
 
   dhcp:
-    active: false
-    start: "192.168.21.10"
+    active: true
+    start: "192.168.21.50"
     end: "192.168.21.99"
     router: "192.168.21.1"
     netmask: "255.255.255.0"
@@ -41,6 +42,9 @@ pihole_ftl_config:
     sync:
       interval: 0
 
+  webserver:
+    domain: "{{ ansible_facts['hostname'] }}.{{ pihole_dns_domain }}"
+
   database:
     maxDBdays: 20
     network:
@@ -50,7 +54,7 @@ pihole_ftl_config:
     dnsmasq_lines: >-
       {{
         dns_internal_domains
-        | product(dns_pdns_ips)
+        | product(internal_dns_servers)
         | map('join', '/')
         | map('regex_replace', '^', 'server=/')
         | list

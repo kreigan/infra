@@ -4,13 +4,7 @@
     - pihole_ftl_config is defined
     - pihole_ftl_config | length > 0
   vars:
-    domain_config:
-      dns:
-        domain:
-          name: "{{ pihole_dns_domain }}"
-      webserver:
-        domain: "{{ pihole_web_domain }}"
-    ftl_config: "{{ pihole_ftl_config | combine(domain_config, recursive=True) }}"
+    ftl_config: "{{ pihole_ftl_config }}"
   block:
     - name: Debug FTL configuration to apply
       ansible.builtin.debug:

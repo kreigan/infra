@@ -7,12 +7,6 @@ pihole_dns_upstreams:
   - 1.1.1.1
   - 1.0.0.1
 
-# https://docs.pi-hole.net/ftldns/configfile/#name
-pihole_dns_domain: "lan"
-
-# https://docs.pi-hole.net/ftldns/configfile/#domain
-pihole_web_domain: "{{ ansible_facts['hostname'] }}.{{ pihole_dns_domain }}"
-
 # Additional FTL configuration options
 pihole_ftl_config: {}
 #   dns:
