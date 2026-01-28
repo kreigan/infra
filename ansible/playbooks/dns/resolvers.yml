@@ -1,6 +1,0 @@
----
-- name: Configure resolvers
-  hosts: resolvers
-  roles:
-    - unbound
-  tags: resolvers
