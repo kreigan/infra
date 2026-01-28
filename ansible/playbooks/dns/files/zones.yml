@@ -21,49 +21,20 @@ zones:
 
     rrsets:
       - { name: '@', type: A, records: [{ content: 192.168.21.175, comment: send to crnet01prx01 }] }
-
-      - { name: crnet01gh, type: A, records: [{ content: 192.168.21.1, comment: Router }] }
+      - { name: ns, type: A, records: [10.1.21.3] }
 
       - { name: crve01nd01, type: A, records: [{ content: 192.168.21.200, comment: Proxmox node HP EliteDesk G803 mini }] }
-      - { name: proxmox, type: CNAME, records: [crve01nd01.internal.kreigan.com.] }
-
-      - { name: ns, type: A, records: [10.1.21.3] }
-      - { name: crnet01ns01, type: A, records: [{ content: 192.168.21.7, comment: Internal DNS (LAN) }] }
-
-      - { name: crnet01ph, type: A, records: [{ content: 192.168.21.5, comment: Pi Hole CT }] }
-
       - { name: crnet01prx01, type: A, records: [{ content: 192.168.21.175, comment: Nginx (LXC) }] }
-      - { name: crnet01gw01, type: A, records: [{ content: 192.168.21.176, comment: Traefic (LXC) }] }
 
       - { name: crst01nas01, type: A, records: [{ content: 192.168.21.250, comment: Asustor AS5402T s/n AS25025404TM02A0 }] }
       - { name: nfs, type: CNAME, records: [crst01nas01.internal.kreigan.com.] }
 
       - { name: crve01ctn02, type: CNAME, records: [{ content: crst01nas01.internal.kreigan.com., comment: Docker 2 (NAS)}] }
-
       - { name: crve01ctn01, type: A, records: [{ content: 192.168.21.100, comment: Docker 1 (LXC) }] }
 
       - { name: crve01ksn01, type: A, records: [{ content: 192.168.21.131, comment: Talos Linux (VM) }] }
       - { name: crve01ksapi, type: A, records: [{ content: 192.168.21.140, comment: Kubernetes API }] }
       - { name: k8s, type: CNAME, records: [crve01ksapi.internal.kreigan.com.] }
-
-      - { name: home-res01, type: A, records: [{ content: 10.1.21.2, comment: LXC 1003 home-res01 (Unbound resolver) }] }
-      - { name: home-ns01, type: A, records: [{ content: 10.1.21.3, comment: LXC 1004 home-ns01 (PowerDNS auth) }] }
-      - { name: home-pihole, type: A, records: [{ content: 192.168.21.5, comment: LXC 1007 home-pihole }] }
-
-      - { name: adblock, type: CNAME, records: [&proxy crnet01prx01.internal.kreigan.com.] }
-      - { name: pve-gui, type: CNAME, records: [*proxy] }
-      - { name: router, type: CNAME, records: [*proxy] }
-      - { name: storage, type: CNAME, records: [*proxy] }
-
-      - { name: qbt, type: CNAME, records: [*proxy] }
-      - { name: sonarr, type: CNAME, records: [*proxy] }
-      - { name: radarr, type: CNAME, records: [*proxy] }
-      - { name: prowlarr, type: CNAME, records: [*proxy] }
-      - { name: bazarr, type: CNAME, records: [*proxy] }
-      - { name: autobrr, type: CNAME, records: [*proxy] }
-      - { name: recyclarr, type: CNAME, records: [*proxy] }
-
-      - { name: plex, type: CNAME, records: [*proxy] }
 
   int.kreigan.com:
     nameservers:
@@ -73,6 +44,8 @@ zones:
       - { name: '@', type: A, records: [{ content: 192.168.21.10, comment: send to home-gw01 }] }
       - { name: ns, type: A, records: [10.1.21.3] }
 
+      # Hosts
+      - { name: router, type: A, records: [{ content: 192.168.21.1 }] }
       - { name: home-proxmox01, type: A, records: [{ content: 10.1.21.1, comment: "node: proxmox" }] }
       - { name: home-nas01, type: A, records: [{ content: 192.168.21.250, comment: "Asustor AS5402T s/n AS25025404TM02A0" }] }
       - { name: home-res01, type: A, records: [{ content: 10.1.21.2, comment: LXC 1003 home-res01 (Unbound resolver) }] }
@@ -80,11 +53,17 @@ zones:
       - { name: home-pihole, type: A, records: [{ content: 10.1.21.5, comment: LXC 1007 home-pihole }] }
       - { name: home-gw01, type: A, records: [{ content: 10.1.21.10, comment: Gateway Caddy server }] }
 
+      - { name: nfs, type: CNAME, records: [home-nas01.int.kreigan.com.] }
+
+      # WebUI routes
       - { name: adblock, <<: *cname_gw }
       - { name: nas01ui, <<: *cname_gw }
       - { name: pve, <<: *cname_gw }
 
+      # Application routes
       - { name: sonarr, <<: *cname_gw }
       - { name: radarr, <<: *cname_gw }
       - { name: prowlarr, <<: *cname_gw }
       - { name: bazarr, <<: *cname_gw }
+      - { name: autobrr, <<: *cname_gw }
+      - { name: recyclarr, <<: *cname_gw }
