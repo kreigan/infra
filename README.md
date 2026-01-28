@@ -11,16 +11,18 @@ This repository contains infrastructure automation tools and configurations for 
 
 ### Prerequisites
 
-- Ansible >= 2.9
-- Python >= 3.8
+- Ansible
+- Python
 - [Task](https://taskfile.dev/) (for automation tasks)
 - [1Password CLI](https://developer.1password.com/docs/cli/) (for secret management)
 
 ### Configuration
 
-1. Configure variables in:
+1. Configure 1Password secrets in:
    - `ansible/files/host_config/<hostname>.yml` for host-specific variables
    - `ansible/files/group_config/<groupname>.yml` for group variables
+2. Define plain text variables in `ansible/inventory/host_vars/` or
+`ansible/inventory/group_vars/` as per documentation
 2. Generate inventory variables: `task ansible:generate-config`
 3. Run playbooks as needed (see [ansible/README.md](ansible/README.md))
 
