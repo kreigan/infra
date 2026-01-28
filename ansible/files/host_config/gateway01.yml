@@ -1,0 +1,2 @@
+cloudflared_token: "op://homeops/4lpfzfehgohhmasrbwqngy5sgy/production/token"
+caddy_cf_api_token: "op://automation/ngm7rrsosd2tvsvt4f5ep5m3fu/Account API tokens/acme-ssl-validation"

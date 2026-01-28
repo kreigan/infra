@@ -6,7 +6,7 @@
       - cloudflared_token | length > 0
     fail_msg: "cloudflared_token is required but not defined"
     quiet: true
-  tags: always
+  tags: [deploy, config]
 
 - name: Install dependencies
   ansible.builtin.package:
@@ -15,12 +15,19 @@
       - ca-certificates
     state: present
   become: true
-  tags: install
+  tags: deploy
 
 - name: Detect architecture
   ansible.builtin.set_fact:
-    cloudflared_arch: "{{ 'amd64' if ansible_architecture == 'x86_64' else 'arm64' if ansible_architecture == 'aarch64' else ansible_architecture }}"
-  tags: install
+    cloudflared_arch: >-
+      {{
+        'amd64' if arch == 'x86_64'
+        else 'arm64' if arch == 'aarch64'
+        else arch
+      }}
+  vars:
+    arch: "{{ ansible_facts['architecture'] }}"
+  tags: deploy
 
 - name: Download cloudflared binary
   ansible.builtin.get_url:
@@ -30,7 +37,7 @@
     owner: root
     group: root
   become: true
-  tags: install
+  tags: deploy
 
 - name: Install cloudflared service
   ansible.builtin.command:
@@ -42,12 +49,49 @@
     - cloudflared_service_install_result.rc != 0
     - "'cloudflared service is already installed' not in cloudflared_service_install_result.stderr"
   changed_when: "'service for cloudflared installed successfully' in cloudflared_service_install_result.stdout"
-  tags: configure
+  tags: [deploy, config]
 
-- name: Enable and start cloudflared service
-  ansible.builtin.service:
-    name: cloudflared
-    enabled: "{{ cloudflared_service_enabled }}"
-    state: "{{ cloudflared_service_state }}"
+- name: Create cloudflared configuration directory
+  ansible.builtin.file:
+    path: /etc/cloudflared
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
   become: true
-  tags: service
+  tags: [deploy, config]
+
+- name: Store cloudflared token in secure file
+  ansible.builtin.copy:
+    content: "{{ cloudflared_token }}"
+    dest: /etc/cloudflared/token
+    owner: root
+    group: root
+    mode: '0600'
+  become: true
+  no_log: true
+  tags: [deploy, config]
+
+- name: Customize cloudflared service
+  become: true
+  tags: [deploy, config]
+  block:
+    - name: Create systemd drop-in directory for cloudflared
+      ansible.builtin.file:
+        path: /etc/systemd/system/cloudflared.service.d
+        state: directory
+        mode: '0755'
+
+    - name: Create cloudflared service drop-in file
+      ansible.builtin.template:
+        dest: /etc/systemd/system/cloudflared.service.d/override.conf
+        src: cloudflared.conf.j2
+        mode: '0644'
+      notify: Restart cloudflared
+
+- name: Enable cloudflared service
+  ansible.builtin.systemd_service:
+    name: cloudflared
+    enabled: true
+  become: true
+  tags: deploy

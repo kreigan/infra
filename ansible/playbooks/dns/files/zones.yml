@@ -1,3 +1,5 @@
+cname: &cname_gw { type: CNAME, records: [home-gw01.int.kreigan.com.] }
+
 zones:
   kreigan.com:
     nameservers:
@@ -9,6 +11,9 @@ zones:
       - { name: ingress-int, type: A, records: [192.168.21.171] }
       - { name: ingress-ext, type: A, records: [192.168.21.172] }
       - { name: remotedesk, type: A, records: [192.18.147.215] }
+
+      - { name: plex, <<: *cname_gw }
+      - { name: qbt, <<: *cname_gw }
 
   internal.kreigan.com:
     nameservers:
@@ -59,3 +64,27 @@ zones:
       - { name: recyclarr, type: CNAME, records: [*proxy] }
 
       - { name: plex, type: CNAME, records: [*proxy] }
+
+  int.kreigan.com:
+    nameservers:
+      - ns.int.kreigan.com.
+
+    rrsets:
+      - { name: '@', type: A, records: [{ content: 192.168.21.10, comment: send to home-gw01 }] }
+      - { name: ns, type: A, records: [10.1.21.3] }
+
+      - { name: home-proxmox01, type: A, records: [{ content: 10.1.21.1, comment: "node: proxmox" }] }
+      - { name: home-nas01, type: A, records: [{ content: 192.168.21.250, comment: "Asustor AS5402T s/n AS25025404TM02A0" }] }
+      - { name: home-res01, type: A, records: [{ content: 10.1.21.2, comment: LXC 1003 home-res01 (Unbound resolver) }] }
+      - { name: home-ns01, type: A, records: [{ content: 10.1.21.3, comment: LXC 1004 home-ns01 (PowerDNS auth) }] }
+      - { name: home-pihole, type: A, records: [{ content: 10.1.21.5, comment: LXC 1007 home-pihole }] }
+      - { name: home-gw01, type: A, records: [{ content: 10.1.21.10, comment: Gateway Caddy server }] }
+
+      - { name: adblock, <<: *cname_gw }
+      - { name: nas01ui, <<: *cname_gw }
+      - { name: pve, <<: *cname_gw }
+
+      - { name: sonarr, <<: *cname_gw }
+      - { name: radarr, <<: *cname_gw }
+      - { name: prowlarr, <<: *cname_gw }
+      - { name: bazarr, <<: *cname_gw }

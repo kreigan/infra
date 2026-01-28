@@ -1,7 +1,9 @@
 ---
-# Cloudflared service configuration
-cloudflared_service_enabled: true
-cloudflared_service_state: started
-
 # Installation paths
 cloudflared_bin_dir: /usr/local/bin
+
+cloudflared_metrics_port: 42279
+cloudflared_tunnel_options:
+  - --metrics 127.0.0.1:{{ cloudflared_metrics_port }}
+
+cloudflared_run_options: []

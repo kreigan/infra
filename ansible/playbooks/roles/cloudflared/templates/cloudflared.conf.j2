@@ -1,0 +1,7 @@
+[Service]
+ExecStart=
+ExecStart={{ cloudflared_bin_dir }}/cloudflared \
+  tunnel {{ cloudflared_tunnel_options | default([]) | join(' ') }} \
+  run \
+  --token-file /etc/cloudflared/token \
+  {{ cloudflared_run_options | default([]) | join(' ') }}

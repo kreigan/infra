@@ -1,12 +1,13 @@
 pihole_webpassword: "op://homeops/pfr3zahxgtj6hmslbqa5lme5fq/password"
 
-pihole_dns_domain: "internal.kreigan.com"
+pihole_dns_domain: "int.kreigan.com"
 
 internal_dns_servers:
   - "{{ hostvars['ns01']['ansible_host'] }}"
 
 dns_internal_domains:
   - "kreigan.com"
+  - "int.kreigan.com"
   - "internal.kreigan.com"
 
 pihole_ftl_config:

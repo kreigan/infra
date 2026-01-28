@@ -1,0 +1,36 @@
+---
+caddy_version: v2.10.2
+
+caddy_config:
+  apps:
+    tls:
+      automation:
+        policies:
+          - subjects:
+              - "*.kreigan.com"
+              - "*.int.kreigan.com"
+            issuers:
+              - module: acme
+                email: "webmaster@kreigan.com"
+                challenges:
+                  dns:
+                    provider:
+                      name: cloudflare
+                      api_token: "{env.CF_API_TOKEN}"
+
+    http:
+      servers:
+        srv0:
+          listen: [":80", ":443"]
+          routes:
+            - match:
+                - host: ["*.kreigan.com"]
+              handle:
+                - handler: subroute
+                  routes: "{{ caddy_routes_public | default([]) }}"
+
+            - match:
+                - host: ["*.int.kreigan.com"]
+              handle:
+                - handler: subroute
+                  routes: "{{ caddy_routes_internal | default([]) }}"

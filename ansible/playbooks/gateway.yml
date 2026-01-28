@@ -1,0 +1,14 @@
+---
+- name: Deploy and configure cloudflared on the gateway server
+  hosts: gateway01
+  tags: tunnel
+  roles:
+    - role: cloudflared
+      tags: tunnel
+
+- name: Deploy and configure Caddy on the gateway server
+  hosts: gateway01
+  tags: proxy
+  roles:
+    - role: caddy
+      tags: proxy

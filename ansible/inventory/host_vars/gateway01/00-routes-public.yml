@@ -1,0 +1,17 @@
+caddy_routes_public:
+
+  # Plex
+  - match:
+      - host: ["plex.kreigan.com"]
+    handle:
+      - handler: reverse_proxy
+        upstreams:
+          - dial: home-nas01.int.kreigan.com:32400
+
+  # qBittorrent
+  - match:
+      - host: ["qbt.kreigan.com"]
+    handle:
+      - handler: reverse_proxy
+        upstreams:
+          - dial: home-nas01.int.kreigan.com:48080
