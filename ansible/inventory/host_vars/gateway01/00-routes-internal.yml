@@ -54,6 +54,18 @@ caddy_routes_internal:
         upstreams:
           - dial: home-nas01.int.kreigan.com:8000
 
+  # Portainer
+  - match:
+      - host: ["portainer.int.kreigan.com"]
+    handle:
+      - handler: reverse_proxy
+        upstreams:
+          - dial: home-nas01.int.kreigan.com:19943
+        transport:
+          protocol: http
+          tls:
+            insecure_skip_verify: true
+
   # Sonarr
   - match:
       - host: ["sonarr.int.kreigan.com"]
