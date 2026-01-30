@@ -12,6 +12,8 @@ zones:
       - { name: ingress-ext, type: A, records: [192.168.21.172] }
       - { name: remotedesk, type: A, records: [192.18.147.215] }
 
+      - { name: oracle-ampere, type: A, records: [192.18.147.215] }
+
       - { name: plex, <<: *cname_gw }
       - { name: qbt, <<: *cname_gw }
 
