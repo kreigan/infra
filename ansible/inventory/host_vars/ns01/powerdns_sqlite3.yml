@@ -6,7 +6,7 @@ allow_axfr_ips:
   - 10.1.21.0/24
 
 allow_dnsupdate_ips:
-  - 192.168.21.140/32
+  - 10.1.21.40/32
 
 powerdns_web_address: "{{ ansible_facts['default_ipv4']['address'] }}"
 powerdns_web_port: 8081

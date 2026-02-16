@@ -34,6 +34,14 @@ caddy_routes_internal:
           tls:
             insecure_skip_verify: true
 
+  # PowerDNS webserver
+  - match:
+      - host: ["pdns-admin.int.kreigan.com"]
+    handle:
+      - handler: reverse_proxy
+        upstreams:
+          - dial: home-ns01.int.kreigan.com:8081
+
   # Sonarr
   - match:
       - host: ["sonarr.int.kreigan.com"]

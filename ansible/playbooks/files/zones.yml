@@ -51,6 +51,7 @@ zones:
       # WebUI routes
       - { name: pve, <<: *gw_int }
       - { name: portainer, <<: *gw_int }
+      - { name: pdns-admin, <<: *gw_int }
 
       # Application routes
       - { name: sonarr, <<: *gw_int }
