@@ -22,45 +22,13 @@ caddy_routes_internal:
               X-Frame-Options: ["SAMEORIGIN"]
         stream_timeout: "24h"
 
-  # redirect Pi-hole WebUI to /admin
-  - match:
-      - host: ["adblock.int.kreigan.com"]
-        path: ["/"]
-    handle:
-      - handler: static_response
-        headers:
-          Location: ["/admin{uri}"]
-        status_code: 302
-
-  # Pi-hole WebUI
-  - match:
-      - host: ["adblock.int.kreigan.com"]
-    handle:
-      - handler: encode
-        encodings:
-          gzip:
-            level: 0
-          zstd:
-            level: fastest
-      - handler: reverse_proxy
-        upstreams:
-          - dial: home-pihole.int.kreigan.com:80
-
-  # NAS WebUI
-  - match:
-      - host: ["nas01ui.int.kreigan.com"]
-    handle:
-      - handler: reverse_proxy
-        upstreams:
-          - dial: home-nas01.int.kreigan.com:8000
-
   # Portainer
   - match:
       - host: ["portainer.int.kreigan.com"]
     handle:
       - handler: reverse_proxy
         upstreams:
-          - dial: home-nas01.int.kreigan.com:19943
+          - dial: home-nas01.kreigan.com:19943
         transport:
           protocol: http
           tls:
@@ -72,7 +40,7 @@ caddy_routes_internal:
     handle:
       - handler: reverse_proxy
         upstreams:
-          - dial: home-nas01.int.kreigan.com:18989
+          - dial: home-nas01.kreigan.com:18989
 
   # Radarr
   - match:
@@ -80,7 +48,7 @@ caddy_routes_internal:
     handle:
       - handler: reverse_proxy
         upstreams:
-          - dial: home-nas01.int.kreigan.com:17878
+          - dial: home-nas01.kreigan.com:17878
 
   # Prowlarr
   - match:
@@ -88,7 +56,7 @@ caddy_routes_internal:
     handle:
       - handler: reverse_proxy
         upstreams:
-          - dial: home-nas01.int.kreigan.com:29696
+          - dial: home-nas01.kreigan.com:29696
 
   # Bazarr
   - match:
@@ -96,4 +64,4 @@ caddy_routes_internal:
     handle:
       - handler: reverse_proxy
         upstreams:
-          - dial: home-nas01.int.kreigan.com:16767
+          - dial: home-nas01.kreigan.com:16767

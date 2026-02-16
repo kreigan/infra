@@ -1,4 +1,5 @@
-cname: &cname_gw { type: CNAME, records: [home-gw01.int.kreigan.com.] }
+gw_ext: &gw_ext { type: CNAME, records: [home-gw01.kreigan.com.] }
+gw_int: &gw_int { type: CNAME, records: [home-gw01.int.kreigan.com.] }
 
 zones:
   kreigan.com:
@@ -6,57 +7,55 @@ zones:
       - ns.kreigan.com.
 
     rrsets:
-      - { name: ns, type: A, records: [10.1.21.3] }
-      - { name: ampere-vm-cloud-services, type: A, records: [192.18.147.215] }
-      - { name: ingress-int, type: A, records: [192.168.21.171] }
-      - { name: ingress-ext, type: A, records: [192.168.21.172] }
-      - { name: remotedesk, type: A, records: [192.18.147.215] }
+      - { name: '@', type: A, records: [{ content: 192.168.21.10, comment: send to home-gw01 }] }
+      - { name: ns, type: A, records: [192.168.21.5] }
 
-      - { name: oracle-ampere, type: A, records: [192.18.147.215] }
+      # Hosts
+      - { name: router, type: A, records: [{ content: 192.168.21.1 }] }
+      - { name: home-pihole, type: A, records: [{ content: 192.168.21.5, comment: LXC 1007 home-pihole }] }
+      - { name: home-gw01, type: A, records: [192.168.21.10] }
+      - { name: home-nas01, type: A, records: [{ content: 192.168.21.250, comment: "Asustor AS5402T s/n AS25025404TM02A0" }] }
+      - { name: ocks, type: A, records: [40.233.127.116] }
 
-      - { name: plex, <<: *cname_gw }
-      - { name: qbt, <<: *cname_gw }
-
-  internal.kreigan.com:
-    nameservers:
-      - ns.internal.kreigan.com.
-    rrsets:
-      - { name: ns, type: A, records: [10.1.21.3] }
-      - { name: nfs, type: CNAME, records: [nfs.int.kreigan.com.] }
-      - { name: crve01ksn01, type: A, records: [{ content: 192.168.21.131, comment: Talos Linux (VM) }] }
-      - { name: crve01ksapi, type: A, records: [{ content: 192.168.21.140, comment: Kubernetes API }] }
-      - { name: k8s, type: CNAME, records: [crve01ksapi.internal.kreigan.com.] }
+      # WebUI routes
+      - { name: adblock, <<: *gw_ext }
+      - { name: nas01ui, <<: *gw_ext }
+      - { name: plex, <<: *gw_ext }
+      - { name: qbt, <<: *gw_ext }
+      - { name: kromgo, <<: *gw_ext }
 
   int.kreigan.com:
     nameservers:
       - ns.int.kreigan.com.
 
     rrsets:
-      - { name: '@', type: A, records: [{ content: 192.168.21.10, comment: send to home-gw01 }] }
+      - { name: '@', type: A, records: [{ content: 10.1.21.10, comment: send to home-gw01 }] }
       - { name: ns, type: A, records: [10.1.21.3] }
 
       # Hosts
-      - { name: router, type: A, records: [{ content: 192.168.21.1 }] }
       - { name: home-proxmox01, type: A, records: [{ content: 10.1.21.1, comment: "node: proxmox" }] }
-      - { name: home-nas01, type: A, records: [{ content: 192.168.21.250, comment: "Asustor AS5402T s/n AS25025404TM02A0" }] }
       - { name: home-res01, type: A, records: [{ content: 10.1.21.2, comment: LXC 1003 home-res01 (Unbound resolver) }] }
       - { name: home-ns01, type: A, records: [{ content: 10.1.21.3, comment: LXC 1004 home-ns01 (PowerDNS auth) }] }
       - { name: home-pihole, type: A, records: [{ content: 10.1.21.5, comment: LXC 1007 home-pihole }] }
       - { name: home-gw01, type: A, records: [{ content: 10.1.21.10, comment: Gateway Caddy server }] }
       - { name: home-docker01, type: A, records: [{ content: 10.1.21.30, comment: LXC 1030 home-docker01 }] }
 
-      - { name: nfs, type: CNAME, records: [home-nas01.int.kreigan.com.] }
+      - { name: nfs, type: CNAME, records: [home-nas01.kreigan.com.] }
+
+      # home-cluster: Talos cluster endpoint
+      - { name: homeks, type: A, records: [{ content: 10.1.21.40, comment: "Talos: ruby" }] }
+
+      # home-cluster: kubernetes gateway
+      - { name: homeks-gw01, type: A, records: [{ content: 10.1.21.50, comment: "k8s gateway: envoy-internal" }] }
 
       # WebUI routes
-      - { name: adblock, <<: *cname_gw }
-      - { name: nas01ui, <<: *cname_gw }
-      - { name: pve, <<: *cname_gw }
-      - { name: portainer, <<: *cname_gw }
+      - { name: pve, <<: *gw_int }
+      - { name: portainer, <<: *gw_int }
 
       # Application routes
-      - { name: sonarr, <<: *cname_gw }
-      - { name: radarr, <<: *cname_gw }
-      - { name: prowlarr, <<: *cname_gw }
-      - { name: bazarr, <<: *cname_gw }
-      - { name: autobrr, <<: *cname_gw }
-      - { name: recyclarr, <<: *cname_gw }
+      - { name: sonarr, <<: *gw_int }
+      - { name: radarr, <<: *gw_int }
+      - { name: prowlarr, <<: *gw_int }
+      - { name: bazarr, <<: *gw_int }
+      - { name: autobrr, <<: *gw_int }
+      - { name: recyclarr, <<: *gw_int }
