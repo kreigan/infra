@@ -14,3 +14,10 @@
   become: true
   changed_when: false
   tags: *tags
+
+- name: Restart Caddy
+  ansible.builtin.systemd_service:
+    name: caddy
+    state: restarted
+  become: true
+  tags: *tags

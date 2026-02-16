@@ -8,7 +8,10 @@
 
 - name: Build Caddy with xcaddy
   tags: deploy
-  when: caddy_version_check.rc != 0 or (caddy_version is defined and caddy_version not in caddy_version_check.stdout)
+  when: >-
+    caddy_version_check.rc != 0
+    or (caddy_version is defined and caddy_version not in caddy_version_check.stdout)
+    or (FORCE is defined and FORCE | bool)
   block:
     - name: Make sure build dependencies are installed
       ansible.builtin.command: which go xcaddy
@@ -51,6 +54,9 @@
         group: root
       become: true
       when: caddy_build_result is not skipped
+      notify:
+        - Reload systemd
+        - Restart Caddy
 
     - name: Remove temporary Caddy binary
       ansible.builtin.file:
@@ -90,6 +96,13 @@
   become: true
   notify: Reload systemd
   tags: deploy
+
+- name: Restart caddy if it was deployed
+  ansible.builtin.meta: flush_handlers
+  when:
+    - caddy_build_result is defined
+    - caddy_build_result is not skipped
+  tags: [deploy, config]
 
 - name: Configure Caddy
   become: true
