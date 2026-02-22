@@ -32,6 +32,13 @@ caddy_routes_public:
         upstreams:
           - dial: home-nas01.kreigan.com:8000
 
+  # Immich
+  - match:
+      - host: ["photos.kreigan.com"]
+    handle:
+      - handler: reverse_proxy
+        upstreams:
+          - dial: home-nas01.kreigan.com:22283
 
   # Plex
   - match:
