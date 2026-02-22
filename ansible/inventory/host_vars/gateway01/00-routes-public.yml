@@ -56,4 +56,4 @@ caddy_routes_public:
     handle:
       - handler: reverse_proxy
         upstreams:
-          - dial: homeks-gw01.kreigan.com:80
+          - dial: homeks-gw01.int.kreigan.com:80

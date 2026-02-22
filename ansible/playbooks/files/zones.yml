@@ -22,6 +22,7 @@ zones:
       - { name: nas01ui, <<: *gw_ext }
       - { name: plex, <<: *gw_ext }
       - { name: qbt, <<: *gw_ext }
+      - { name: flux-webhook, <<: *gw_ext }
       - { name: kromgo, <<: *gw_ext }
 
   int.kreigan.com:
