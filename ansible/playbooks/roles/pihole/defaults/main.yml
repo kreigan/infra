@@ -1,0 +1,15 @@
+# Plain text password for Pi-hole web interface or a valid
+# 1Password reference like "op://path/to/item/field"
+pihole_webpassword: ""
+
+# https://docs.pi-hole.net/ftldns/configfile/#upstreams
+pihole_dns_upstreams:
+  - 1.1.1.1
+  - 1.0.0.1
+
+# Additional FTL configuration options
+pihole_ftl_config: {}
+#   dns:
+#     CNAMEdeepInspect: false
+#   cache:
+#     size: 2000

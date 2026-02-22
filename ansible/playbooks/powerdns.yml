@@ -1,0 +1,62 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/ansible/ansible-lint/refs/heads/main/src/ansiblelint/schemas/playbook.json
+- name: Install and configure PowerDNS
+  hosts: ns01
+  roles:
+    - role: PowerDNS.pdns
+      become: true
+
+  pre_tasks:
+    - name: Add PowerDNS APT repository
+      ansible.builtin.deb822_repository:
+        name: powerdns
+        types: deb
+        state: present
+        enabled: true
+        uris: http://repo.powerdns.com/{{ ansible_facts['distribution'] | lower }}
+        suites: "{{ ansible_facts['distribution_release'] }}-auth-{{ powerdns_version }}"
+        components: main
+        architectures: amd64
+        signed_by: https://repo.powerdns.com/{{ powerdns_repo_pub }}-pub.asc
+      become: true
+
+  tasks:
+    - name: Install TSIG keys
+      tags: tsig
+      block:
+        - name: Try create TSIG key
+          ansible.builtin.uri:
+            url: "{{ powerdns_api_base_url }}/tsigkeys"
+            method: POST
+            headers: &headers
+              X-API-Key: "{{ powerdns_api_key }}"
+            body_format: json
+            body:
+              name: "{{ item.name }}"
+              algorithm: "{{ item.algorithm }}"
+              key: "{{ item.secret }}"
+            status_code:
+              - 201
+              - 409
+          loop: "{{ tsig_keys }}"
+          loop_control:
+            label: "{{ item.name }}"
+          register: tsig_create_result
+          no_log: true
+
+        - name: Update already existing TSIG keys
+          ansible.builtin.uri:
+            url: "{{ powerdns_api_base_url }}/tsigkeys/{{ item.name }}"
+            method: PUT
+            headers: *headers
+            body_format: json
+            body:
+              algorithm: "{{ item.algorithm }}"
+              key: "{{ item.secret }}"
+            status_code: 200
+          loop: "{{ tsig_keys }}"
+          when: tsig_create_result.results[index].status == 409
+          loop_control:
+            label: "{{ item.name }}"
+            index_var: index
+          no_log: true

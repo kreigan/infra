@@ -1,0 +1,14 @@
+---
+caddy_version: latest
+caddy_bin_dir: /usr/local/bin
+caddy_config_dir: /etc/caddy
+caddy_config_file: "{{ caddy_config_dir }}/config.json"
+caddy_user: caddy
+caddy_group: caddy
+
+# List of xcaddy modules to build with
+# Example: ["github.com/caddy-dns/cloudflare", "github.com/greenpau/caddy-auth-portal"]
+caddy_modules: []
+
+# Caddy configuration loaded from host_vars
+caddy_config: {}

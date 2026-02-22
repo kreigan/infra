@@ -1,0 +1,15 @@
+unbound_base_config: |
+  server:
+    interface: 127.0.0.1
+    interface: {{ ansible_facts['default_ipv4']['address'] }}
+    access-control: 127.0.0.0/8 allow
+    access-control: 10.1.21.0/24 allow
+    access-control: 0.0.0.0/0 refuse
+    qname-minimisation: yes
+    do-ip6: no
+unbound_cache_config: |
+  server:
+    prefetch: yes
+    serve-expired: yes
+    serve-expired-ttl: 86400
+    serve-expired-client-timeout: 1800

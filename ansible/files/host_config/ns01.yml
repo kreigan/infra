@@ -1,0 +1,10 @@
+powerdns_api_key: "op://HomeOps/edln6rk3la36rvzphz6oyoxxki/password"
+
+tsig_keys:
+  - name: "op://homeops/nlabzwr2ithdvttvtju3cv4pqa/key name"
+    algorithm: "op://homeops/nlabzwr2ithdvttvtju3cv4pqa/algorithm"
+    secret: "op://homeops/nlabzwr2ithdvttvtju3cv4pqa/secret"
+
+  - name: "op://Automation/bind9 externaldns/keyname"
+    algorithm: "op://Automation/bind9 externaldns/algorithm"
+    secret: "op://Automation/bind9 externaldns/secret"

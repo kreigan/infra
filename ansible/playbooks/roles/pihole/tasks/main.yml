@@ -1,0 +1,120 @@
+---
+- name: Read Pi-hole password from 1Password
+  when: pihole_webpassword is search("op://")
+  block:
+    - name: Read 1Password reference for Pi-hole password
+      ansible.builtin.command: op read "{{ pihole_webpassword }}"
+      delegate_to: localhost
+      register: pihole_password_op
+      changed_when: false
+      failed_when: pihole_password_op.rc != 0
+
+    - name: Set Pi-hole password fact
+      ansible.builtin.set_fact:
+        pihole_webpassword: "{{ pihole_password_op.stdout }}"
+
+- name: Ensure password is set
+  ansible.builtin.assert:
+    that:
+      - pihole_webpassword is not none
+      - pihole_webpassword | length > 0
+    fail_msg: "pihole_webpassword must be set to a non-empty value."
+  tags: always
+
+- name: Check if Pi-hole is already installed
+  ansible.builtin.command: pihole -v
+  register: pihole_check
+  changed_when: false
+  failed_when: false
+
+- name: Perform clean Pi-hole installation
+  ansible.builtin.include_tasks:
+    file: install.yml
+  when: pihole_check.rc != 0
+
+- name: Add service user to pihole group
+  ansible.builtin.user:
+    name: "{{ ansible_user }}"
+    groups: pihole
+    append: true
+  become: true
+
+- name: Test if WebUI password has changed
+  ansible.builtin.uri:
+    url: "http://127.0.0.1/api/auth"
+    method: POST
+    body:
+      password: "{{ pihole_webpassword }}"
+    body_format: json
+  register: pihole_check
+  changed_when: false
+  failed_when: false
+  no_log: true
+
+- name: Change Pi-hole WebUI password
+  when: pihole_check.status == 401
+  block:
+    - name: Set Pi-hole FTL WEB password
+      ansible.builtin.command: pihole setpassword {{ pihole_webpassword }}
+      changed_when: false
+      no_log: true
+      become: true
+
+    - name: Wait after setting password
+      ansible.builtin.pause:
+        seconds: 1
+
+- name: Apply Pi-hole configuration
+  vars:
+    api_base_url: "http://127.0.0.1/api"
+  block:
+    - name: Get Pi-hole SID
+      ansible.builtin.uri:
+        url: "{{ api_base_url }}/auth"
+        method: POST
+        body:
+          password: "{{ pihole_webpassword }}"
+        body_format: json
+        timeout: 2
+      register: pihole_auth
+      changed_when: false
+      no_log: true
+      when: pihole_check.status != 200 # Skip if already authenticated
+
+    - name: Set Pi-hole API SID fact
+      ansible.builtin.set_fact:
+        pihole_auth_header:
+          X-FTL-SID: "{{ auth_response.json.session.sid }}"
+      no_log: true
+      vars:
+        auth_response: "{{ (pihole_auth is skipped | ternary(pihole_check, pihole_auth)) }}"
+
+    - name: Check we have a valid SID
+      ansible.builtin.assert:
+        that:
+          - pihole_auth_header is defined
+          - pihole_auth_header['X-FTL-SID'] is not none
+          - pihole_auth_header['X-FTL-SID'] | length > 0
+        fail_msg: "Failed to obtain valid Pi-hole API SID."
+
+    - name: Apply configuration
+      ansible.builtin.include_tasks:
+        file: configure.yml
+
+  always:
+    - name: Log out from Pi-hole session
+      ansible.builtin.uri:
+        url: "{{ api_base_url }}/auth"
+        method: DELETE
+        headers: "{{ pihole_auth_header }}"
+        status_code: 204
+      no_log: true
+      retries: 3
+      delay: 1
+      register: pihole_logout
+      until: pihole_logout.status == 204
+
+    - name: Remove Pi-hole API SID fact
+      ansible.builtin.set_fact:
+        pihole_auth_header: null
+      no_log: true

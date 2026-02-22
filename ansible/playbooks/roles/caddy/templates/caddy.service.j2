@@ -1,0 +1,28 @@
+[Unit]
+Description=Caddy
+Documentation=https://caddyserver.com/docs/
+After=network.target network-online.target
+Requires=network-online.target
+ConditionFileNotEmpty={{ caddy_config_file }}
+
+[Service]
+Type=notify
+User={{ caddy_user }}
+Group={{ caddy_group }}
+ExecStart={{ caddy_bin_dir }}/caddy run --config {{ caddy_config_file }}
+ExecReload={{ caddy_bin_dir }}/caddy reload --config {{ caddy_config_file }}
+TimeoutStopSec=5s
+LimitNOFILE=1048576
+PrivateTmp=true
+ProtectSystem=full
+AmbientCapabilities=CAP_NET_ADMIN CAP_NET_BIND_SERVICE
+
+NoNewPrivileges=true
+PrivateDevices=true
+SecureBits=keep-caps
+
+EnvironmentFile=-{{ caddy_config_dir }}/caddy.env
+LimitNPROC=512
+
+[Install]
+WantedBy=multi-user.target

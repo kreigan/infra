@@ -1,0 +1,59 @@
+caddy_routes_public:
+
+  # redirect Pi-hole WebUI to /admin
+  - match:
+      - host: ["adblock.kreigan.com"]
+        path: ["/"]
+    handle:
+      - handler: static_response
+        headers:
+          Location: ["/admin{uri}"]
+        status_code: 302
+
+  # Pi-hole WebUI
+  - match:
+      - host: ["adblock.kreigan.com"]
+    handle:
+      - handler: encode
+        encodings:
+          gzip:
+            level: 0
+          zstd:
+            level: fastest
+      - handler: reverse_proxy
+        upstreams:
+          - dial: home-pihole.kreigan.com:80
+
+  # NAS WebUI
+  - match:
+      - host: ["nas01ui.kreigan.com"]
+    handle:
+      - handler: reverse_proxy
+        upstreams:
+          - dial: home-nas01.kreigan.com:8000
+
+
+  # Plex
+  - match:
+      - host: ["plex.kreigan.com"]
+    handle:
+      - handler: reverse_proxy
+        upstreams:
+          - dial: home-nas01.kreigan.com:32400
+
+  # qBittorrent
+  - match:
+      - host: ["qbt.kreigan.com"]
+    handle:
+      - handler: reverse_proxy
+        upstreams:
+          - dial: home-nas01.kreigan.com:48080
+
+  - match:
+      - host:
+          - "flux-webhook.kreigan.com"
+          - "kromgo.kreigan.com"
+    handle:
+      - handler: reverse_proxy
+        upstreams:
+          - dial: homeks-gw01.int.kreigan.com:80

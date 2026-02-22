@@ -1,6 +1,5 @@
 # Ansible
 .ansible/
-ansible.cfg
 
 # Environment files
 .env

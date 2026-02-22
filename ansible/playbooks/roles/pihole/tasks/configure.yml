@@ -1,0 +1,21 @@
+---
+- name: Apply Pi-hole FTL configuration via API
+  when:
+    - pihole_ftl_config is defined
+    - pihole_ftl_config | length > 0
+  vars:
+    ftl_config: "{{ pihole_ftl_config }}"
+  block:
+    - name: Debug FTL configuration to apply
+      ansible.builtin.debug:
+        var: ftl_config
+
+    - name: Apply Pi-hole FTL configuration
+      ansible.builtin.uri:
+        url: "{{ api_base_url }}/config"
+        method: PATCH
+        body_format: json
+        headers: "{{ pihole_auth_header }}"
+        body:
+          config: "{{ ftl_config }}"
+      no_log: true

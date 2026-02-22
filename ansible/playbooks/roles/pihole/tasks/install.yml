@@ -1,0 +1,47 @@
+---
+- name: Create pihole group
+  ansible.builtin.group:
+    name: pihole
+    state: present
+  become: true
+
+- name: Create pihole user
+  ansible.builtin.user:
+    name: pihole
+    shell: /usr/sbin/nologin
+    group: pihole
+  become: true
+
+- name: Create configuration folder
+  ansible.builtin.file:
+    path: "/etc/pihole"
+    state: directory
+    owner: pihole
+    group: pihole
+    mode: "0755"
+  become: true
+
+- name: Download installation script
+  ansible.builtin.get_url:
+    url: "https://install.pi-hole.net"
+    dest: "/tmp/pihole_install.sh"
+    mode: "0755"
+
+- name: Create a file for unattended installation
+  ansible.builtin.copy:
+    dest: "/etc/pihole/setupVars.conf"
+    content: |
+      IPV4_ADDRESS={{ ansible_facts['default_ipv4']['address'] }}/{{ ansible_facts['default_ipv4']['prefix'] }}
+      PIHOLE_INTERFACE={{ ansible_facts['default_ipv4']['interface'] }}
+      PIHOLE_DNS_1={{ pihole_dns_upstreams[0] }}
+      PIHOLE_DNS_2={{ pihole_dns_upstreams[1] if pihole_dns_upstreams | length > 1 else '' }}
+    owner: pihole
+    group: pihole
+    mode: "0644"
+  become: true
+
+- name: Install Pi-hole
+  ansible.builtin.command:
+    cmd: "bash /tmp/pihole_install.sh --unattended"
+    creates: "/opt/pihole/"
+  become: true

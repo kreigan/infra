@@ -1,0 +1,75 @@
+caddy_routes_internal:
+
+  # Proxmox WebUI
+  - match:
+      - host: ["pve.int.kreigan.com"]
+    handle:
+      - handler: reverse_proxy
+        upstreams:
+          - dial: "home-proxmox01.int.kreigan.com:8006"
+        transport:
+          protocol: http
+          tls:
+            insecure_skip_verify: true
+        headers:
+          request:
+            set:
+              Host: ["home-proxmox01.int.kreigan.com"]
+              Upgrade: ["{http.request.header.Upgrade}"]
+              Connection: ["upgrade"]
+          response:
+            set:
+              X-Frame-Options: ["SAMEORIGIN"]
+        stream_timeout: "24h"
+
+  # Portainer
+  - match:
+      - host: ["portainer.int.kreigan.com"]
+    handle:
+      - handler: reverse_proxy
+        upstreams:
+          - dial: home-nas01.kreigan.com:19943
+        transport:
+          protocol: http
+          tls:
+            insecure_skip_verify: true
+
+  # PowerDNS webserver
+  - match:
+      - host: ["pdns-admin.int.kreigan.com"]
+    handle:
+      - handler: reverse_proxy
+        upstreams:
+          - dial: home-ns01.int.kreigan.com:8081
+
+  # Sonarr
+  - match:
+      - host: ["sonarr.int.kreigan.com"]
+    handle:
+      - handler: reverse_proxy
+        upstreams:
+          - dial: home-nas01.kreigan.com:18989
+
+  # Radarr
+  - match:
+      - host: ["radarr.int.kreigan.com"]
+    handle:
+      - handler: reverse_proxy
+        upstreams:
+          - dial: home-nas01.kreigan.com:17878
+
+  # Prowlarr
+  - match:
+      - host: ["prowlarr.int.kreigan.com"]
+    handle:
+      - handler: reverse_proxy
+        upstreams:
+          - dial: home-nas01.kreigan.com:29696
+
+  # Bazarr
+  - match:
+      - host: ["bazarr.int.kreigan.com"]
+    handle:
+      - handler: reverse_proxy
+        upstreams:
+          - dial: home-nas01.kreigan.com:16767

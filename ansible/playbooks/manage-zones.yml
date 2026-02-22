@@ -1,0 +1,36 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/ansible/ansible-lint/refs/heads/main/src/ansiblelint/schemas/playbook.json
+- name: Manage PowerDNS zones and records
+  hosts: ns01
+
+  vars_files:
+    - files/zones.yml
+
+  tasks:
+    - name: Use pdns-zone-manager to apply DNS zones
+      delegate_to: localhost
+      block:
+        - name: Ensure pdns-zone-manager is installed
+          ansible.builtin.command: which pdns-zone-manager
+          register: pdns_zone_manager_check
+          failed_when: pdns_zone_manager_check.rc != 0
+          changed_when: false
+
+        - name: Apply zones configuration
+          ansible.builtin.command:
+            cmd: >
+              pdns-zone-manager apply
+              --api-url {{ powerdns_api_base_url }}
+              --api-key {{ powerdns_api_key }}
+              --json
+              {{ playbook_dir }}/files/zones.yml
+          register: zone_manager_result
+          changed_when:
+            - zone_manager_result.rc == 0
+            - >-
+              (zone_manager_result.stdout_lines | last | from_json).data
+              | dict2items
+              | selectattr('value', '>', 0)
+              | list
+              | length > 0
+          no_log: true
