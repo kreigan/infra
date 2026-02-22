@@ -61,7 +61,9 @@ zones:
       # Application routes
       - { name: autobrr, <<: *gw_int }
       - { name: bazarr, <<: *gw_int }
+      - { name: maintainerr, <<: *gw_int }
       - { name: prowlarr, <<: *gw_int }
       - { name: radarr, <<: *gw_int }
       - { name: recyclarr, <<: *gw_int }
       - { name: sonarr, <<: *gw_int }
+      - { name: tautulli, <<: *gw_int }
