@@ -1,6 +1,9 @@
 ---
 caddy_version: v2.10.2
 
+caddy_modules:
+  - github.com/mholt/caddy-l4
+
 caddy_config:
   apps:
     tls:
@@ -34,3 +37,14 @@ caddy_config:
               handle:
                 - handler: subroute
                   routes: "{{ caddy_routes_internal | default([]) }}"
+
+    layer4:
+      servers:
+        minecraft:
+          listen: [":25565"]
+          routes:
+            - match: []
+              handle:
+                - handler: proxy
+                  upstreams:
+                    - dial: ["homeks-gw01.int.kreigan.com:25565"]
