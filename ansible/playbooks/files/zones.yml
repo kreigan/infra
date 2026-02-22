@@ -17,6 +17,8 @@ zones:
       - { name: home-nas01, type: A, records: [{ content: 192.168.21.250, comment: "Asustor AS5402T s/n AS25025404TM02A0" }] }
       - { name: ocks, type: A, records: [40.233.127.116] }
 
+      - {name: mc-cozy-vanilla, <<: *gw_ext }
+
       # WebUI routes
       - { name: adblock, <<: *gw_ext }
       - { name: nas01ui, <<: *gw_ext }
