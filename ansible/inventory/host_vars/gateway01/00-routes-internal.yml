@@ -34,6 +34,14 @@ caddy_routes_internal:
           tls:
             insecure_skip_verify: true
 
+  # Internal qBittorrent
+  - match:
+      - host: ["qbt.int.kreigan.com"]
+    handle:
+      - handler: reverse_proxy
+        upstreams:
+          - dial: home-nas01.kreigan.com:58080
+
   # PowerDNS webserver
   - match:
       - host: ["pdns-admin.int.kreigan.com"]
