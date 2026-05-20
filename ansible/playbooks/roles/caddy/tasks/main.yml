@@ -97,6 +97,25 @@
   notify: Reload systemd
   tags: deploy
 
+- name: Create CA folder
+  ansible.builtin.file:
+    path: /etc/ssl/ca
+    state: directory
+    mode: '0700'
+  become: true
+  tags: deploy
+
+- name: Deploy CA certificate and key
+  ansible.builtin.copy:
+    content: "{{ item.content }}"
+    dest: "{{ item.dest }}"
+    mode: '0600'
+  loop:
+    - { content: "{{ kreigan_ca_cert }}", dest: "/etc/ssl/ca/kreigan.crt" }
+    - { content: "{{ kreigan_ca_key }}", dest: "/etc/ssl/ca/kreigan.key" }
+  become: true
+  tags: deploy
+
 - name: Restart caddy if it was deployed
   ansible.builtin.meta: flush_handlers
   when:
