@@ -6,12 +6,20 @@ caddy_modules:
 
 caddy_config:
   apps:
+    pki:
+      certificate_authorities:
+        kreigan:
+          name: "Kreigan Internal CA"
+          root_common_name: "Kreigan CA"
+          install_trust: true
+          root:
+            certificate: /etc/ssl/ca/kreigan.crt
+            private_key: /etc/ssl/ca/kreigan.key
     tls:
       automation:
         policies:
           - subjects:
               - "*.kreigan.com"
-              - "*.int.kreigan.com"
             issuers:
               - module: acme
                 email: "webmaster@kreigan.com"
@@ -20,6 +28,12 @@ caddy_config:
                     provider:
                       name: cloudflare
                       api_token: "{env.CF_API_TOKEN}"
+          - subjects:
+              - "*.int.kreigan.com"
+            issuers:
+              - module: internal
+                ca: kreigan
+                lifetime: 90d
 
     http:
       servers:

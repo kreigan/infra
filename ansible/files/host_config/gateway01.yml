@@ -1,2 +1,4 @@
 cloudflared_token: "op://homeops/4lpfzfehgohhmasrbwqngy5sgy/home/token"
 caddy_cf_api_token: "op://services/ehmlzxoa5butpwdrih5eqltwhy/Account API tokens/caddy-cert-manager"
+kreigan_ca_cert: "op://HomeOps/byh26huurjzvanrfa2dxl475ay/pem/cert.pem"
+kreigan_ca_key: "op://HomeOps/byh26huurjzvanrfa2dxl475ay/pem/key.pem"
